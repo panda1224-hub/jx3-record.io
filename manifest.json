@@ -1,0 +1,22 @@
+{
+  "name": "剑网三·江湖账房",
+  "short_name": "江湖账房",
+  "description": "剑网三专属收益记录管理工具",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F0E6",
+  "theme_color": "#B83A2B",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Crect width='192' height='192' fill='%23B83A2B' rx='32'/%3E%3Ctext x='96' y='130' font-family='serif' font-size='100' fill='%23C9A86C' text-anchor='middle'%3E账%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Crect width='512' height='512' fill='%23B83A2B' rx='80'/%3E%3Ctext x='256' y='350' font-family='serif' font-size='270' fill='%23C9A86C' text-anchor='middle'%3E账%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

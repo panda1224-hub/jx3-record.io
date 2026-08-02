@@ -1,0 +1,1447 @@
+/* ======================================================================
+   剑网三收益记录管理工具 · 古风武侠样式表
+   设计参考：每日故宫 APP + 唐代卷轴美学 + 水墨意境
+   配色：朱砂红 + 暖金 + 宣纸黄 + 墨黑侧栏
+   ====================================================================== */
+
+/* ======================================================================
+   1. 全局重置与基础
+   ====================================================================== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* 主品牌色 - 朱砂红 */
+  --primary-red: #B83A2B;
+  --primary-red-dark: #8B2A1F;
+  --primary-red-light: #D4584A;
+  --red-light: rgba(184, 58, 43, 0.1);
+
+  /* 尊贵金 */
+  --accent-gold: #C9A86C;
+  --accent-gold-light: #E4C895;
+  --accent-gold-dark: #9A7B4A;
+  --gold-light: rgba(201, 168, 108, 0.15);
+
+  /* 宣纸背景 */
+  --paper-base: #F5F0E6;
+  --paper-card: #FAF6ED;
+  --paper-dark: #E8E0D0;
+
+  /* 墨色 */
+  --ink-sidebar: #1A1A1A;
+  --ink-sidebar-light: #2D2D2D;
+  --ink-primary: #2B2B2B;
+  --ink-secondary: #5A5A5A;
+  --ink-light: #8A8A8A;
+
+  /* 功能色 */
+  --success: #5A8A5A;
+  --warning: #C9A86C;
+  --danger: #B83A2B;
+  --line-gray: #E8E2D8;
+
+  /* 字体 */
+  --font-title: 'Ma Shan Zheng', cursive;
+  --font-body: 'Noto Serif SC', serif;
+
+  /* 阴影 */
+  --shadow-card: 0 2px 12px rgba(44, 44, 44, 0.08);
+  --shadow-hover: 0 4px 20px rgba(44, 44, 44, 0.15);
+  --shadow-sidebar: 2px 0 12px rgba(0, 0, 0, 0.3);
+
+  /* 圆角与过渡 */
+  --radius: 6px;
+  --transition: 0.3s ease;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--paper-base);
+  color: var(--ink-primary);
+  min-height: 100vh;
+  /* 宣纸纹理：多层 radial-gradient 模拟纤维 + SVG 噪点滤镜 */
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(200, 190, 170, 0.30) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(180, 175, 160, 0.25) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 80%, rgba(190, 180, 165, 0.20) 0%, transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(170, 165, 150, 0.15) 0%, transparent 30%),
+    radial-gradient(circle at 90% 60%, rgba(195, 185, 170, 0.20) 0%, transparent 35%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+/* 祥云暗纹固定层 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120' viewBox='0 0 200 120'%3E%3Cpath d='M30 90 Q20 90 20 80 Q20 70 30 70 Q30 60 40 55 Q50 50 60 55 Q65 45 80 45 Q95 45 100 55 Q110 50 120 55 Q135 55 135 65 Q145 65 145 75 Q145 85 135 85 Q130 95 115 95 Q105 100 90 95 Q80 100 65 95 Q55 100 40 95 Z' fill='none' stroke='%23C9A86C' stroke-width='0.5' opacity='0.06'/%3E%3Cpath d='M160 40 Q150 40 150 32 Q150 24 160 24 Q160 16 168 12 Q176 8 184 12 Q188 4 198 4 Q210 4 214 12 Q222 8 230 12 Q242 12 242 20 Q250 20 250 28 Q250 36 242 36 Q238 44 226 44 Q218 48 206 44 Q198 48 186 44 Q178 48 166 44 Z' fill='none' stroke='%23C9A86C' stroke-width='0.5' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 200px 120px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 滚动条样式：细 + 金色 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--paper-dark);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold-dark);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-gold) var(--paper-dark);
+}
+
+/* ======================================================================
+   2. 三栏布局
+   ====================================================================== */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--ink-sidebar);
+  color: #ccc;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sidebar);
+  z-index: 100;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 200px;
+  margin-right: 180px;
+  padding: 24px 32px;
+  min-height: 100vh;
+}
+
+.side-panel {
+  width: 180px;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--paper-card);
+  border-left: 1px solid var(--line-gray);
+  padding: 20px 16px;
+  overflow-y: auto;
+}
+
+/* ======================================================================
+   3. 侧边栏 .sidebar
+   ====================================================================== */
+.sidebar-logo {
+  padding: 24px 20px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  text-align: center;
+  color: var(--accent-gold-light);
+  border-bottom: 1px solid rgba(201, 168, 108, 0.2);
+  text-shadow: 0 0 6px rgba(201, 168, 108, 0.4);
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.nav-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #999;
+  transition: var(--transition);
+  border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+  background: rgba(201, 168, 108, 0.1);
+  color: var(--accent-gold-light);
+}
+
+.nav-item.active {
+  background: rgba(184, 58, 43, 0.15);
+  color: #fff;
+  border-left-color: var(--primary-red);
+}
+
+.nav-icon {
+  font-family: var(--font-title);
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+}
+
+.nav-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(201, 168, 108, 0.2);
+}
+
+/* 古风圆形语音按钮 */
+#voice-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-gold);
+  background: transparent;
+  color: var(--accent-gold-light);
+  font-family: var(--font-title);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#voice-btn:hover {
+  background: var(--accent-gold);
+  color: var(--ink-sidebar);
+}
+
+/* 搜索框 */
+.search-box {
+  margin-bottom: 12px;
+}
+.search-box > input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(201, 168, 108, 0.3);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #ccc;
+  font-size: 13px;
+  transition: var(--transition);
+}
+.search-box > input::placeholder {
+  color: #666;
+}
+.search-box > input:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ======================================================================
+   4. 右侧辅助栏 .side-panel
+   ====================================================================== */
+.side-panel-title {
+  writing-mode: vertical-rl;
+  font-family: var(--font-title);
+  font-size: 28px;
+  color: var(--accent-gold-dark);
+  margin: 0 auto 24px;
+  text-align: center;
+  letter-spacing: 8px;
+}
+
+.side-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.side-quick {
+  padding: 12px;
+  background: var(--paper-base);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--ink-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+.side-quick:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+}
+
+/* ======================================================================
+   5. 页面容器 .page
+   ====================================================================== */
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+  animation: pageFadeIn 0.3s ease forwards;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* ======================================================================
+   6. 卷轴卡片组件 .scroll-card（核心特色）
+   ====================================================================== */
+.scroll-card {
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line-gray);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+/* 卷轴顶部杆 */
+.scroll-card::before {
+  content: '';
+  display: block;
+  height: 20px;
+  background: linear-gradient(90deg,
+    var(--accent-gold-dark) 0%,
+    var(--accent-gold) 15%,
+    var(--accent-gold-light) 50%,
+    var(--accent-gold) 85%,
+    var(--accent-gold-dark) 100%);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+/* 卷轴杆左右端帽（略微超出卡片两侧） */
+.scroll-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -4px;
+  right: -4px;
+  height: 20px;
+  background: linear-gradient(90deg,
+    var(--accent-gold-dark) 0%, var(--accent-gold-dark) 4px,
+    transparent 4px, transparent calc(100% - 4px),
+    var(--accent-gold-dark) calc(100% - 4px));
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+/* 内容区横向留白（伪元素不是真实元素，* 仅匹配真实子元素） */
+.scroll-card > * {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* 首个内容元素顶部留白，避开卷轴杆；末个元素底部留白 */
+.scroll-card > *:first-child {
+  padding-top: 16px;
+}
+.scroll-card > *:last-child {
+  padding-bottom: 16px;
+}
+
+/* 悬停浮起 */
+.scroll-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* ======================================================================
+   7. 区块标题 .section-title
+   ====================================================================== */
+.section-title {
+  font-family: var(--font-title);
+  font-size: 20px;
+  color: var(--ink-primary);
+  padding: 16px 0 12px;
+  border-bottom: 1px solid var(--line-gray);
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: var(--primary-red);
+}
+
+/* ======================================================================
+   8. 统计卡片
+   ====================================================================== */
+.home-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  margin-bottom: 8px;
+}
+
+.stat-number {
+  font-family: var(--font-title);
+  font-size: 32px;
+  color: var(--ink-primary);
+  padding-bottom: 16px;
+}
+
+.stat-number.gold {
+  color: var(--accent-gold-dark);
+}
+
+.stat-number.red {
+  color: var(--primary-red);
+}
+
+/* ======================================================================
+   9. 进度条
+   ====================================================================== */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--paper-dark);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-red), var(--accent-gold));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  text-align: right;
+}
+
+/* ======================================================================
+   10. 筛选栏 .filter-bar
+   ====================================================================== */
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+/* ======================================================================
+   11. 表单控件
+   ====================================================================== */
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line-gray);
+  border-radius: 4px;
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-primary);
+  transition: var(--transition);
+}
+
+/* 筛选栏内表单控件自适应宽度 */
+.filter-bar .form-input,
+.filter-bar .form-select,
+.filter-bar .form-textarea {
+  width: auto;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px var(--gold-light);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.hidden-input {
+  display: none;
+}
+
+/* ======================================================================
+   12. 按钮系统
+   ====================================================================== */
+.btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--primary-red);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--primary-red-dark);
+}
+
+.btn-secondary {
+  background: var(--paper-dark);
+  color: var(--ink-primary);
+}
+.btn-secondary:hover {
+  background: var(--line-gray);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold-dark);
+}
+.btn-outline:hover {
+  background: var(--gold-light);
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--primary-red);
+  color: var(--primary-red);
+}
+.btn-danger:hover {
+  background: var(--red-light);
+}
+
+/* 印章风格按钮 */
+.btn-stamp {
+  background: var(--primary-red);
+  color: #fff;
+  border: 2px solid var(--primary-red-dark);
+  border-radius: 4px;
+  padding: 8px 20px;
+  font-family: var(--font-title);
+  font-size: 15px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 2px 6px rgba(184, 58, 43, 0.3);
+}
+.btn-stamp:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(184, 58, 43, 0.4);
+}
+.btn-stamp:active {
+  transform: scale(0.98);
+}
+
+/* ======================================================================
+   13. 列表项 .list-item
+   ====================================================================== */
+.list-item {
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 3px solid var(--accent-gold);
+  transition: box-shadow 0.3s, transform 0.3s;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.list-item:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.list-item.income {
+  border-left-color: var(--accent-gold);
+}
+
+.list-item.expense {
+  border-left-color: var(--primary-red);
+}
+
+.list-item .item-time {
+  font-size: 12px;
+  color: var(--ink-light);
+}
+
+.list-item .item-char {
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.list-item .item-amount {
+  font-family: var(--font-title);
+  font-size: 18px;
+}
+
+.list-item .item-amount.income {
+  color: var(--accent-gold-dark);
+}
+
+.list-item .item-amount.expense {
+  color: var(--primary-red);
+}
+
+.list-item .item-note {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  flex: 1;
+}
+
+.list-item .item-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--gold-light);
+  color: var(--accent-gold-dark);
+}
+
+/* ======================================================================
+   14. 拖拽与滑动动效
+   ====================================================================== */
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--gold-light);
+}
+
+.sortable-drag {
+  box-shadow: var(--shadow-hover);
+  transform: rotate(2deg);
+}
+
+/* 拂袖而去 */
+.list-item.sweep-out {
+  animation: sweepOut 0.5s ease forwards;
+}
+@keyframes sweepOut {
+  to {
+    transform: translateX(-100%) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* 收剑归鞘 */
+.list-item.sword-out {
+  animation: swordSheath 0.6s ease forwards;
+}
+@keyframes swordSheath {
+  to {
+    width: 0;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    transform: translateX(50px);
+  }
+}
+
+/* 剑光掠过 */
+.list-item.sword-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--accent-gold-light), transparent);
+  animation: swordLight 0.4s ease;
+}
+@keyframes swordLight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* 盖章落墨 */
+.stamp-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-title);
+  font-size: 48px;
+  color: var(--primary-red);
+  opacity: 0.8;
+  pointer-events: none;
+  animation: stampDown 0.5s ease forwards, inkSpread 0.8s ease 0.3s;
+}
+@keyframes stampDown {
+  0% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+}
+@keyframes inkSpread {
+  0% {
+    box-shadow: 0 0 0 0 rgba(184, 58, 43, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 40px rgba(184, 58, 43, 0);
+  }
+}
+
+/* ======================================================================
+   15. 快捷面板 .quick-panel
+   ====================================================================== */
+.quick-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-btn {
+  padding: 6px 14px;
+  background: var(--paper-base);
+  border: 1px solid var(--accent-gold);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--ink-primary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.quick-btn:hover {
+  background: var(--gold-light);
+  border-color: var(--accent-gold-dark);
+}
+.quick-btn:active {
+  transform: scale(0.95);
+}
+
+/* ======================================================================
+   16. 快捷金额按钮
+   ====================================================================== */
+.amount-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.quick-amount-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.quick-amt-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: var(--paper-dark);
+  border: 1px solid var(--line-gray);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.quick-amt-btn:hover {
+  background: var(--gold-light);
+  border-color: var(--accent-gold);
+}
+
+input#record-amount {
+  flex: 1;
+}
+
+/* ======================================================================
+   17. Toggle 按钮组 .btn-toggle-group
+   ====================================================================== */
+.btn-toggle-group {
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--accent-gold);
+}
+
+.btn-toggle {
+  flex: 1;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-secondary);
+  transition: var(--transition);
+}
+
+.btn-toggle.active {
+  background: var(--primary-red);
+  color: #fff;
+}
+
+/* ======================================================================
+   18. 弹窗 .modal-overlay / .modal
+   ====================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: var(--paper-card);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: scale(0.8);
+  transition: transform 0.3s;
+  border: 1px solid var(--accent-gold);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.modal-overlay.active .modal {
+  transform: scale(1);
+}
+
+/* 弹窗顶部卷轴杆装饰（同 scroll-card） */
+.modal::before {
+  content: '';
+  display: block;
+  height: 16px;
+  background: linear-gradient(90deg,
+    var(--accent-gold-dark) 0%,
+    var(--accent-gold) 15%,
+    var(--accent-gold-light) 50%,
+    var(--accent-gold) 85%,
+    var(--accent-gold-dark) 100%);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.modal-small {
+  max-width: 360px;
+}
+
+.modal-title {
+  font-family: var(--font-title);
+  font-size: 20px;
+  color: var(--ink-primary);
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line-gray);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 12px 20px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--line-gray);
+}
+
+/* ======================================================================
+   19. 任务打卡样式
+   ====================================================================== */
+.task-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--line-gray);
+}
+
+.task-tab {
+  padding: 10px 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--ink-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: var(--transition);
+}
+
+.task-tab.active {
+  color: var(--primary-red);
+  border-bottom-color: var(--primary-red);
+  font-weight: 500;
+}
+
+.task-progress-section {
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.task-group {
+  margin-bottom: 20px;
+}
+
+.task-group-title {
+  font-family: var(--font-title);
+  font-size: 16px;
+  color: var(--ink-primary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--accent-gold);
+  cursor: grab;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.task-item.completed {
+  border-left-color: var(--success);
+  background: rgba(90, 138, 90, 0.05);
+}
+
+.task-item.completed .task-name {
+  text-decoration: line-through;
+  color: var(--ink-light);
+}
+
+.task-check {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--accent-gold);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+  color: transparent;
+  font-size: 14px;
+}
+
+.task-check.checked {
+  background: var(--primary-red);
+  border-color: var(--primary-red);
+  color: #fff;
+}
+
+.task-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.main-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: var(--primary-red);
+  color: #fff;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
+/* ======================================================================
+   20. 奇遇列表样式
+   ====================================================================== */
+.encounter-stats-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.encounter-item {
+  padding: 14px 16px;
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 3px solid;
+}
+
+.encounter-item.peerless {
+  border-left-color: var(--primary-red);
+}
+
+.encounter-item.normal {
+  border-left-color: var(--accent-gold);
+}
+
+.encounter-name {
+  font-family: var(--font-title);
+  font-size: 18px;
+}
+
+.encounter-item.peerless .encounter-name {
+  color: var(--primary-red);
+}
+
+.encounter-item.normal .encounter-name {
+  color: var(--accent-gold-dark);
+}
+
+.rarity-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.rarity-tag.peerless {
+  background: var(--red-light);
+  color: var(--primary-red);
+}
+
+.rarity-tag.normal {
+  background: var(--gold-light);
+  color: var(--accent-gold-dark);
+}
+
+/* ======================================================================
+   21. 成就徽章网格
+   ====================================================================== */
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.achievement-card {
+  aspect-ratio: 1;
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 2px solid var(--line-gray);
+  transition: var(--transition);
+  position: relative;
+}
+
+.achievement-card.unlocked {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(201, 168, 108, 0.3);
+}
+
+.achievement-card.locked {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+}
+
+.achievement-icon {
+  font-family: var(--font-title);
+  font-size: 36px;
+  color: var(--accent-gold-dark);
+  margin-bottom: 8px;
+}
+
+.achievement-card.unlocked .achievement-icon {
+  color: var(--primary-red);
+}
+
+.achievement-name {
+  font-size: 13px;
+  color: var(--ink-primary);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.achievement-desc {
+  font-size: 11px;
+  color: var(--ink-light);
+  text-align: center;
+}
+
+/* ======================================================================
+   22. 避雷名单样式
+   ====================================================================== */
+.blacklist-item {
+  padding: 14px 16px;
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  border-left: 3px solid var(--primary-red);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.blacklist-type-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--red-light);
+  color: var(--primary-red);
+}
+
+/* ======================================================================
+   23. 设置页样式
+   ====================================================================== */
+.settings-section {
+  margin-bottom: 24px;
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  border: 1px solid var(--line-gray);
+}
+
+.settings-section-title {
+  font-family: var(--font-title);
+  font-size: 17px;
+  color: var(--ink-primary);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-gray);
+}
+
+.settings-list {
+  margin-bottom: 12px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-gray);
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-item-name {
+  font-size: 14px;
+  color: var(--ink-primary);
+}
+
+.settings-item-detail {
+  font-size: 12px;
+  color: var(--ink-light);
+}
+
+.settings-item-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.settings-data-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.settings-backup-info {
+  font-size: 12px;
+  color: var(--ink-light);
+  margin-top: 8px;
+}
+
+/* ======================================================================
+   24. Toast 提示
+   ====================================================================== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  background: var(--ink-primary);
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: toastIn 0.3s ease;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ======================================================================
+   25. 占位页样式
+   ====================================================================== */
+.placeholder-card {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.placeholder-icon {
+  font-family: var(--font-title);
+  font-size: 64px;
+  color: var(--accent-gold);
+  margin-bottom: 16px;
+}
+
+.placeholder-title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  color: var(--ink-primary);
+  margin-bottom: 8px;
+}
+
+.placeholder-desc {
+  font-size: 14px;
+  color: var(--ink-secondary);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ======================================================================
+   26. 移动端底部导航 .mobile-nav
+   ====================================================================== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--paper-base);
+  border-top: 1px solid var(--accent-gold);
+  height: 56px;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--ink-light);
+  transition: var(--transition);
+}
+
+.mobile-nav-item.active {
+  color: var(--primary-red);
+}
+
+.mobile-nav-icon {
+  font-family: var(--font-title);
+  font-size: 18px;
+}
+
+.mobile-nav-label {
+  font-size: 11px;
+}
+
+/* ======================================================================
+   27. 响应式断点
+   ====================================================================== */
+/* 平板：隐藏右侧辅助栏 */
+@media (max-width: 1024px) {
+  .side-panel {
+    display: none;
+  }
+  .main-content {
+    margin-right: 0;
+  }
+}
+
+/* 手机：隐藏左侧栏 + 显示底部 Tab */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 16px;
+    padding-bottom: 72px;
+  }
+  .mobile-nav {
+    display: flex;
+  }
+  .home-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .achievement-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .scroll-card::before {
+    height: 14px;
+  }
+}
+
+/* ======================================================================
+   28. 其他辅助样式
+   ====================================================================== */
+.recent-list {
+  /* 列表容器 */
+}
+
+/* 页头内的标题去除自身下边框装饰 */
+.page-header .section-title {
+  margin-bottom: 0;
+  border: none;
+  padding: 0;
+}
+.page-header .section-title::after {
+  display: none;
+}
+
+.income-header .section-title {
+  margin-bottom: 0;
+  border: none;
+  padding: 0;
+}
+.income-header .section-title::after {
+  display: none;
+}
+
+/* 首页诗词条 */
+.home-poem-bar {
+  font-family: var(--font-title);
+  font-size: 20px;
+  color: var(--accent-gold-dark);
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 8px;
+  background: var(--paper-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-gray);
+}
+
+/* 首页日期条 */
+.home-date-bar {
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-secondary);
+  margin-bottom: 16px;
+}
+
+.home-quick-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.home-goal-section {
+  padding: 16px 20px;
+}

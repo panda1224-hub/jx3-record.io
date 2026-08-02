@@ -1,2524 +1,606 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>剑网三收益记录管理工具</title>
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<style>
-/* ==================== 基础重置与全局变量 ==================== */
-*, *::before, *::after {
-  margin: 0; padding: 0; box-sizing: border-box;
-}
-:root {
-  --bg-paper: #F5F0E8;
-  --red-primary: #B22222;
-  --gold-accent: #C8A45C;
-  --teal-secondary: #5B7F8A;
-  --text-ink: #2C2C2C;
-  --line-gray: #E8E2D8;
-  --red-light: rgba(178,34,34,0.1);
-  --red-dark: #8B1A1A;
-  --gold-light: rgba(200,164,92,0.15);
-  --teal-light: rgba(91,127,138,0.1);
-  --font-title: 'Ma Shan Zheng', cursive;
-  --font-body: 'Noto Serif SC', serif;
-  --shadow-card: 0 2px 12px rgba(44,44,44,0.08);
-  --shadow-hover: 0 4px 20px rgba(44,44,44,0.15);
-  --radius: 6px;
-  --transition: 0.3s ease;
-}
-html { font-size: 16px; }
-body {
-  font-family: var(--font-body);
-  background-color: var(--bg-paper);
-  color: var(--text-ink);
-  min-height: 100vh;
-  /* 宣纸纹理背景 */
-  background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(200,190,170,0.3) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(180,175,160,0.25) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 80%, rgba(190,180,165,0.2) 0%, transparent 45%),
-    radial-gradient(circle at 10% 90%, rgba(170,165,150,0.15) 0%, transparent 30%),
-    radial-gradient(circle at 90% 60%, rgba(195,185,170,0.2) 0%, transparent 35%),
-    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  background-attachment: fixed;
-  padding-bottom: 80px;
-  overflow-x: hidden;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>江湖账房 - 剑网三收益记录</title>
 
-/* ==================== 祥云暗纹 ==================== */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120' viewBox='0 0 200 120'%3E%3Cpath d='M30 90 Q20 90 20 80 Q20 70 30 70 Q30 60 40 55 Q50 50 60 55 Q65 45 80 45 Q95 45 100 55 Q110 50 120 55 Q135 55 135 65 Q145 65 145 75 Q145 85 135 85 Q130 95 115 95 Q105 100 90 95 Q80 100 65 95 Q55 100 40 95 Z' fill='none' stroke='%23C8A45C' stroke-width='0.5' opacity='0.06'/%3E%3Cpath d='M160 40 Q150 40 150 32 Q150 24 160 24 Q160 16 168 12 Q176 8 184 12 Q188 4 198 4 Q210 4 214 12 Q222 8 230 12 Q242 12 242 20 Q250 20 250 28 Q250 36 242 36 Q238 44 226 44 Q218 48 206 44 Q198 48 186 44 Q178 48 166 44 Z' fill='none' stroke='%23C8A45C' stroke-width='0.5' opacity='0.05'/%3E%3C/svg%3E");
-  background-size: 200px 120px;
-  pointer-events: none;
-  z-index: 0;
-}
+  <!-- Google Fonts: 马善政(标题) + 思源宋体(正文) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
 
-/* ==================== 页面容器 ==================== */
-.app-container {
-  position: relative;
-  z-index: 1;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-}
-.page {
-  display: none;
-  animation: pageFadeIn 0.3s ease forwards;
-}
-.page.active { display: block; }
-.page.fading-out {
-  animation: pageFadeOut 0.3s ease forwards;
-}
+  <!-- PWA 配置 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="江湖账房">
+  <meta name="theme-color" content="#1a1612">
 
-@keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes pageFadeOut {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-10px); }
-}
-
-/* ==================== 底部导航栏 ==================== */
-.bottom-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(180deg, var(--bg-paper) 0%, #EDE7D9 100%);
-  border-top: 2px solid var(--gold-accent);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  height: 64px;
-  z-index: 1000;
-  box-shadow: 0 -2px 16px rgba(44,44,44,0.1);
-}
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  padding: 6px 12px;
-  transition: var(--transition);
-  border-radius: var(--radius);
-  user-select: none;
-}
-.nav-item:hover { background: var(--gold-light); }
-.nav-item.active { color: var(--red-primary); }
-.nav-icon {
-  font-family: var(--font-title);
-  font-size: 22px;
-  line-height: 1.2;
-  width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  border: 1.5px solid transparent;
-  transition: var(--transition);
-}
-.nav-item.active .nav-icon {
-  border-color: var(--red-primary);
-  background: var(--red-light);
-  color: var(--red-primary);
-  box-shadow: 0 0 8px rgba(178,34,34,0.15);
-}
-.nav-label {
-  font-size: 11px;
-  font-family: var(--font-body);
-  color: var(--teal-secondary);
-}
-.nav-item.active .nav-label { color: var(--red-primary); font-weight: 500; }
-
-/* ==================== 通用组件 ==================== */
-/* 标题样式 */
-.section-title {
-  font-family: var(--font-title);
-  font-size: 28px;
-  color: var(--red-primary);
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--gold-accent);
-  position: relative;
-}
-.section-title::after {
-  content: '';
-  position: absolute;
-  bottom: -2px; left: 0;
-  width: 60px; height: 2px;
-  background: var(--red-primary);
-}
-
-/* 卡片样式 */
-.card {
-  background: var(--line-gray);
-  border: 1px solid rgba(200,164,92,0.3);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow-card);
-  transition: var(--transition);
-  position: relative;
-  overflow: hidden;
-}
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 4px; height: 100%;
-  background: linear-gradient(180deg, var(--red-primary), var(--gold-accent));
-  opacity: 0.6;
-}
-
-/* 按钮 */
-.btn {
-  font-family: var(--font-body);
-  font-size: 14px;
-  padding: 8px 20px;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: var(--transition);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.btn-primary {
-  background: var(--red-primary);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(178,34,34,0.3);
-}
-.btn-primary:hover {
-  background: var(--red-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(178,34,34,0.4);
-}
-.btn-secondary {
-  background: var(--gold-accent);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(200,164,92,0.3);
-}
-.btn-secondary:hover { background: #B8943F; transform: translateY(-1px); }
-.btn-outline {
-  background: transparent;
-  color: var(--red-primary);
-  border: 1.5px solid var(--red-primary);
-}
-.btn-outline:hover { background: var(--red-light); }
-.btn-danger {
-  background: transparent;
-  color: var(--red-primary);
-  border: 1px solid var(--red-primary);
-}
-.btn-danger:hover { background: var(--red-light); }
-
-/* 印章按钮 */
-.btn-stamp {
-  font-family: var(--font-title);
-  font-size: 16px;
-  padding: 10px 24px;
-  background: var(--red-primary);
-  color: #fff;
-  border: 2px solid var(--red-dark);
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
-  box-shadow: 2px 2px 0 var(--red-dark), inset 0 0 0 1px rgba(255,255,255,0.15);
-  transition: var(--transition);
-}
-.btn-stamp:hover {
-  transform: scale(1.05);
-  box-shadow: 3px 3px 0 var(--red-dark), inset 0 0 0 1px rgba(255,255,255,0.2);
-}
-.btn-stamp:active { transform: scale(0.98); }
-
-/* 表单 */
-.form-group { margin-bottom: 14px; }
-.form-label {
-  display: block;
-  font-size: 13px;
-  color: var(--teal-secondary);
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-.form-input, .form-select, .form-textarea {
-  width: 100%;
-  font-family: var(--font-body);
-  font-size: 14px;
-  padding: 10px 14px;
-  border: 1.5px solid var(--gold-accent);
-  border-radius: var(--radius);
-  background: #FDFAF4;
-  color: var(--text-ink);
-  transition: var(--transition);
-  outline: none;
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--red-primary);
-  box-shadow: 0 0 0 3px rgba(178,34,34,0.1);
-}
-.form-textarea { resize: vertical; min-height: 60px; }
-.form-select { cursor: pointer; appearance: auto; }
-
-/* 弹窗 */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(44,44,44,0.5);
-  z-index: 2000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  animation: overlayFadeIn 0.3s ease;
-}
-.modal-overlay.active { display: flex; }
-.modal {
-  background: var(--bg-paper);
-  border: 2px solid var(--red-primary);
-  border-radius: 8px;
-  padding: 28px;
-  width: 90%;
-  max-width: 520px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 40px rgba(44,44,44,0.2), 0 0 0 1px var(--gold-accent);
-  animation: modalPopIn 0.3s ease;
-  position: relative;
-}
-.modal::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px; right: -1px; bottom: -1px;
-  border: 1px solid var(--gold-accent);
-  border-radius: 9px;
-  pointer-events: none;
-}
-.modal-title {
-  font-family: var(--font-title);
-  font-size: 24px;
-  color: var(--red-primary);
-  margin-bottom: 20px;
-  text-align: center;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line-gray);
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line-gray);
-}
-@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes modalPopIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-
-/* 确认弹窗 */
-.confirm-modal .modal {
-  max-width: 380px;
-  text-align: center;
-}
-.confirm-text {
-  font-size: 16px;
-  margin-bottom: 8px;
-  line-height: 1.6;
-}
-.confirm-actions {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-/* Toast 通知 */
-.toast-container {
-  position: fixed;
-  top: 20px; right: 20px;
-  z-index: 3000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.toast {
-  background: var(--bg-paper);
-  border: 1.5px solid var(--red-primary);
-  border-left: 4px solid var(--red-primary);
-  border-radius: var(--radius);
-  padding: 12px 20px;
-  font-size: 14px;
-  box-shadow: var(--shadow-hover);
-  animation: toastIn 0.3s ease;
-  max-width: 300px;
-}
-.toast.out { animation: toastOut 0.3s ease forwards; }
-@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
-
-/* 标签 */
-.tag {
-  display: inline-block;
-  font-size: 12px;
-  padding: 2px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--gold-accent);
-  color: var(--gold-accent);
-  background: var(--gold-light);
-}
-.tag-red { border-color: var(--red-primary); color: var(--red-primary); background: var(--red-light); }
-.tag-teal { border-color: var(--teal-secondary); color: var(--teal-secondary); background: var(--teal-light); }
-
-/* 筛选区 */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-  align-items: center;
-}
-.filter-bar .form-input, .filter-bar .form-select {
-  width: auto; min-width: 120px;
-  font-size: 13px;
-  padding: 6px 10px;
-}
-
-/* 列表条目 */
-.list-item {
-  background: var(--line-gray);
-  border: 1px solid rgba(200,164,92,0.2);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  transition: var(--transition);
-  cursor: default;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.list-item:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
-  border-color: rgba(200,164,92,0.5);
-}
-.list-item .item-main { flex: 1; min-width: 0; }
-.list-item .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.list-item .item-time {
-  font-size: 12px;
-  color: var(--teal-secondary);
-  margin-bottom: 4px;
-}
-.list-item .item-title {
-  font-size: 15px;
-  font-weight: 500;
-}
-.list-item .item-desc {
-  font-size: 13px;
-  color: var(--teal-secondary);
-  margin-top: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.list-item .item-amount {
-  font-family: var(--font-title);
-  font-size: 20px;
-  color: var(--gold-accent);
-  flex-shrink: 0;
-}
-.list-item .delete-confirm {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  position: absolute;
-  right: 10px; top: 50%;
-  transform: translateY(-50%);
-  background: var(--red-primary);
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  z-index: 10;
-}
-.list-item .delete-confirm.show { display: flex; }
-
-/* 拂袖而去动效 */
-@keyframes sweepLeft {
-  0% { transform: translateX(0); opacity: 1; }
-  50% { transform: translateX(-40px); opacity: 0.7; }
-  100% { transform: translateX(-120%); opacity: 0; height: 0; padding: 0; margin: 0; border: 0; }
-}
-.list-item.sweep-out {
-  animation: sweepLeft 0.5s ease forwards;
-}
-.list-item.sweep-out::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 6px; height: 6px;
-  background: var(--text-ink);
-  border-radius: 50%;
-  animation: inkParticle 0.6s ease forwards;
-  box-shadow:
-    10px -8px 0 rgba(44,44,44,0.5),
-    -6px 10px 0 rgba(44,44,44,0.4),
-    12px 4px 0 rgba(44,44,44,0.3),
-    -8px -6px 0 rgba(44,44,44,0.5);
-}
-@keyframes inkParticle {
-  0% { transform: translate(-50%,-50%) scale(1); opacity: 0.8; }
-  100% { transform: translate(calc(-50% - 60px), -50%) scale(0.3); opacity: 0; }
-}
-
-/* 收剑归鞘动效 */
-@keyframes swordSheath {
-  0% { max-width: 100%; opacity: 1; }
-  40% { max-width: 30%; opacity: 0.8; }
-  100% { max-width: 0; opacity: 0; padding: 0; margin: 0; border: 0; overflow: hidden; }
-}
-.list-item.sword-out {
-  animation: swordSheath 0.6s ease forwards;
-}
-.list-item.sword-out::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,223,120,0.4) 50%, transparent 100%);
-  animation: swordLight 0.4s ease;
-}
-@keyframes swordLight {
-  0% { transform: translateX(100%); opacity: 0; }
-  30% { opacity: 1; }
-  100% { transform: translateX(-100%); opacity: 0; }
-}
-
-/* 盖章落墨动效 */
-@keyframes stampDown {
-  0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
-  50% { transform: scale(1.15) rotate(2deg); opacity: 1; }
-  70% { transform: scale(0.95) rotate(-1deg); }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-@keyframes inkSpread {
-  0% { box-shadow: 0 0 0 0 rgba(178,34,34,0.3); }
-  100% { box-shadow: 0 0 0 12px rgba(178,34,34,0); }
-}
-.stamp-effect {
-  position: absolute;
-  right: 10px; top: 50%;
-  transform: translateY(-50%);
-  width: 32px; height: 32px;
-  border: 2px solid var(--red-primary);
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--red-primary);
-  font-family: var(--font-title);
-  font-size: 18px;
-  animation: stampDown 0.5s ease forwards, inkSpread 0.8s ease 0.3s;
-  pointer-events: none;
-  z-index: 5;
-}
-
-/* 子Tab切换 */
-.sub-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 16px;
-  border-bottom: 2px solid var(--gold-accent);
-}
-.sub-tab {
-  padding: 10px 24px;
-  cursor: pointer;
-  font-family: var(--font-title);
-  font-size: 18px;
-  color: var(--teal-secondary);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: var(--transition);
-}
-.sub-tab:hover { color: var(--red-primary); }
-.sub-tab.active {
-  color: var(--red-primary);
-  border-bottom-color: var(--red-primary);
-}
-
-/* 进度条 */
-.progress-bar-wrap {
-  background: var(--line-gray);
-  border-radius: 10px;
-  height: 10px;
-  overflow: hidden;
-  margin: 8px 0;
-  border: 1px solid rgba(200,164,92,0.3);
-}
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--red-primary), var(--gold-accent));
-  border-radius: 10px;
-  transition: width 0.5s ease;
-}
-
-/* 柱状图 */
-.chart-bar-group { margin-bottom: 12px; }
-.chart-bar-label {
-  font-size: 13px;
-  margin-bottom: 4px;
-  display: flex;
-  justify-content: space-between;
-}
-.chart-bar {
-  background: var(--line-gray);
-  height: 22px;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgba(200,164,92,0.2);
-}
-.chart-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s ease;
-}
-.chart-bar-fill.red { background: linear-gradient(90deg, var(--red-primary), #D44A4A); }
-.chart-bar-fill.gold { background: linear-gradient(90deg, var(--gold-accent), #D4B96A); }
-.chart-bar-fill.teal { background: linear-gradient(90deg, var(--teal-secondary), #7A9FA8); }
-
-/* 横向条形图 */
-.chart-horizontal { margin-bottom: 10px; }
-.chart-horizontal .chart-bar { height: 18px; }
-.chart-horizontal .chart-bar-fill { background: linear-gradient(90deg, var(--gold-accent), var(--red-primary)); }
-
-/* 统计数字 */
-.stat-number {
-  font-family: var(--font-title);
-  font-size: 36px;
-  color: var(--red-primary);
-  line-height: 1.2;
-}
-.stat-label {
-  font-size: 13px;
-  color: var(--teal-secondary);
-}
-.stat-card {
-  text-align: center;
-  padding: 16px;
-}
-
-/* 设置项 */
-.settings-section {
-  margin-bottom: 24px;
-}
-.settings-section-title {
-  font-family: var(--font-title);
-  font-size: 20px;
-  color: var(--red-primary);
-  margin-bottom: 12px;
-  padding-left: 10px;
-  border-left: 3px solid var(--gold-accent);
-}
-.settings-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--line-gray);
-  border: 1px solid rgba(200,164,92,0.2);
-  border-radius: var(--radius);
-  margin-bottom: 8px;
-  transition: var(--transition);
-}
-.settings-item:hover {
-  border-color: rgba(200,164,92,0.5);
-}
-.settings-item-info { flex: 1; }
-.settings-item-name { font-size: 14px; font-weight: 500; }
-.settings-item-detail { font-size: 12px; color: var(--teal-secondary); }
-.settings-item-actions { display: flex; gap: 6px; }
-
-/* Toggle 切换 */
-.toggle-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.toggle {
-  width: 44px; height: 22px;
-  background: var(--line-gray);
-  border-radius: 11px;
-  cursor: pointer;
-  position: relative;
-  border: 1px solid var(--gold-accent);
-  transition: var(--transition);
-}
-.toggle.on { background: var(--red-primary); border-color: var(--red-primary); }
-.toggle::after {
-  content: '';
-  position: absolute;
-  top: 2px; left: 2px;
-  width: 16px; height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  transition: var(--transition);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-.toggle.on::after { left: 24px; }
-.toggle-label { font-size: 13px; color: var(--teal-secondary); }
-
-/* 空状态 */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--teal-secondary);
-}
-.empty-state-icon {
-  font-family: var(--font-title);
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.4;
-}
-.empty-state-text { font-size: 14px; }
-
-/* ==================== 首页总览 ==================== */
-.home-banner {
-  text-align: center;
-  padding: 24px 16px;
-  background: linear-gradient(135deg, var(--red-light) 0%, var(--gold-light) 100%);
-  border: 1px solid rgba(200,164,92,0.3);
-  border-radius: var(--radius);
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-.home-banner::before, .home-banner::after {
-  content: '';
-  position: absolute;
-  width: 60px; height: 60px;
-  border: 2px solid var(--gold-accent);
-  border-radius: 50%;
-  opacity: 0.15;
-}
-.home-banner::before { top: -20px; left: -20px; }
-.home-banner::after { bottom: -20px; right: -20px; }
-.home-poem {
-  font-family: var(--font-title);
-  font-size: 22px;
-  color: var(--red-primary);
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-.home-date {
-  font-size: 14px;
-  color: var(--teal-secondary);
-}
-.home-date .lunar { color: var(--gold-accent); margin-left: 8px; }
-
-.home-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.home-quick-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.home-quick-actions .btn { flex: 1; justify-content: center; font-size: 15px; padding: 12px; }
-
-/* ==================== 收益记录 ==================== */
-.income-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.income-header .section-title { margin-bottom: 0; border: none; padding: 0; }
-.income-header .section-title::after { display: none; }
-
-/* ==================== 任务打卡 ==================== */
-.task-group-title {
-  font-family: var(--font-title);
-  font-size: 18px;
-  color: var(--red-primary);
-  margin: 16px 0 8px;
-  padding-left: 8px;
-  border-left: 3px solid var(--gold-accent);
-}
-.task-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--line-gray);
-  border: 1px solid rgba(200,164,92,0.2);
-  border-radius: var(--radius);
-  margin-bottom: 8px;
-  transition: var(--transition);
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  user-select: none;
-}
-.task-item:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-hover);
-  border-color: rgba(200,164,92,0.5);
-}
-.task-item.completed { background: var(--red-light); }
-.task-item.completed .task-name { text-decoration: line-through; color: var(--teal-secondary); }
-.task-check {
-  width: 28px; height: 28px;
-  border: 2px solid var(--gold-accent);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: var(--transition);
-  flex-shrink: 0;
-}
-.task-item.completed .task-check {
-  background: var(--red-primary);
-  border-color: var(--red-primary);
-  color: #fff;
-  font-family: var(--font-title);
-  font-size: 16px;
-}
-.task-name { flex: 1; font-size: 14px; }
-.task-type-tag { font-size: 11px; }
-.task-top-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-/* ==================== 数据汇总 ==================== */
-.summary-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-  align-items: center;
-}
-.summary-controls .form-select, .summary-controls .form-input {
-  width: auto; min-width: 130px;
-  font-size: 13px;
-  padding: 6px 10px;
-}
-.summary-big-number {
-  font-family: var(--font-title);
-  font-size: 48px;
-  color: var(--red-primary);
-  text-align: center;
-  margin: 20px 0;
-  text-shadow: 1px 1px 0 rgba(200,164,92,0.3);
-}
-.summary-big-label {
-  text-align: center;
-  font-size: 14px;
-  color: var(--teal-secondary);
-  margin-bottom: 24px;
-}
-.summary-chart-section {
-  margin-bottom: 24px;
-}
-.summary-chart-title {
-  font-family: var(--font-title);
-  font-size: 18px;
-  color: var(--teal-secondary);
-  margin-bottom: 10px;
-}
-
-/* ==================== 响应式 ==================== */
-@media (max-width: 640px) {
-  .app-container { padding: 12px; }
-  .home-stats { grid-template-columns: repeat(2, 1fr); }
-  .home-poem { font-size: 18px; }
-  .stat-number { font-size: 28px; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .filter-bar .form-input, .filter-bar .form-select { width: 100%; }
-  .summary-big-number { font-size: 36px; }
-}
-
-/* ==================== 滚动条美化 ==================== */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--gold-accent); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--red-primary); }
-
-/* 隐藏file input */
-.hidden-input { display: none; }
-</style>
+  <!-- 外部样式表 -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- ============ 应用外壳 ============ -->
+  <div class="app-shell">
 
-<!-- ==================== Toast容器 ==================== -->
-<div class="toast-container" id="toastContainer"></div>
-
-<!-- ==================== 主容器 ==================== -->
-<div class="app-container">
-
-  <!-- ===== 1. 首页总览 ===== -->
-  <div class="page active" id="page-home">
-    <div class="home-banner">
-      <div class="home-poem" id="homePoem"></div>
-      <div class="home-date">
-        <span id="homeSolarDate"></span>
-        <span class="lunar" id="homeLunarDate"></span>
+    <!-- ====== 左侧边栏（墨黑，桌面固定，移动隐藏） ====== -->
+    <aside class="sidebar">
+      <!-- 品牌标识 -->
+      <div class="sidebar-logo">
+        <span class="logo-text">江湖账房</span>
       </div>
-    </div>
 
-    <div class="home-stats">
-      <div class="card stat-card">
-        <div class="stat-number" id="homeTodayGold">0</div>
-        <div class="stat-label">今日总金币</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-number" id="homeTodayCount">0</div>
-        <div class="stat-label">今日收益笔数</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-number" id="homeTodayDailies">0</div>
-        <div class="stat-label">今日完成日常</div>
-      </div>
-    </div>
-
-    <div class="home-quick-actions">
-      <button class="btn btn-stamp" onclick="openIncomeModal()">快速记收益</button>
-      <button class="btn btn-secondary" onclick="switchTab('tasks');switchSubTab('daily')">打卡日常</button>
-    </div>
-
-    <div class="section-title">最近收益</div>
-    <div id="homeRecentList"></div>
-  </div>
-
-  <!-- ===== 2. 收益记录 ===== -->
-  <div class="page" id="page-income">
-    <div class="income-header">
-      <div class="section-title">收益记录</div>
-      <button class="btn-stamp" onclick="openIncomeModal()">+ 记一笔</button>
-    </div>
-
-    <div class="filter-bar">
-      <select class="form-select" id="filterAccount" onchange="renderIncomeList()">
-        <option value="">全部账号</option>
-      </select>
-      <select class="form-select" id="filterServer" onchange="renderIncomeList()">
-        <option value="">全区服</option>
-      </select>
-      <select class="form-select" id="filterChar" onchange="renderIncomeList()">
-        <option value="">全角色</option>
-      </select>
-      <input type="date" class="form-input" id="filterDateFrom" onchange="renderIncomeList()">
-      <input type="date" class="form-input" id="filterDateTo" onchange="renderIncomeList()">
-    </div>
-
-    <div id="incomeList"></div>
-  </div>
-
-  <!-- ===== 3. 奇遇台账 ===== -->
-  <div class="page" id="page-encounters">
-    <div class="income-header">
-      <div class="section-title">奇遇台账</div>
-      <button class="btn-stamp" onclick="openEncounterModal()">+ 记奇遇</button>
-    </div>
-
-    <div class="filter-bar">
-      <select class="form-select" id="filterEncChar" onchange="renderEncounterList()">
-        <option value="">全角色</option>
-      </select>
-    </div>
-
-    <div class="card" style="text-align:center;margin-bottom:16px;">
-      <span class="stat-label">奇遇总数</span>
-      <div class="stat-number" id="encounterTotal" style="font-size:28px;">0</div>
-    </div>
-
-    <div id="encounterList"></div>
-  </div>
-
-  <!-- ===== 4. 任务打卡 ===== -->
-  <div class="page" id="page-tasks">
-    <div class="income-header">
-      <div class="section-title">任务打卡</div>
-      <button class="btn-stamp" onclick="openTaskModal()">+ 新增任务</button>
-    </div>
-
-    <div class="sub-tabs">
-      <div class="sub-tab active" onclick="switchSubTab('daily')">日常任务</div>
-      <div class="sub-tab" onclick="switchSubTab('weekly')">周常任务</div>
-    </div>
-
-    <div class="task-top-stats">
-      <div class="card stat-card">
-        <div class="stat-number" id="dailyRate" style="font-size:24px;">0%</div>
-        <div class="stat-label">今日日常完成率</div>
-        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="dailyBar" style="width:0%"></div></div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-number" id="weeklyRate" style="font-size:24px;">0%</div>
-        <div class="stat-label">本周周常完成率</div>
-        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="weeklyBar" style="width:0%"></div></div>
-      </div>
-    </div>
-
-    <div id="taskList"></div>
-  </div>
-
-  <!-- ===== 5. 数据汇总 ===== -->
-  <div class="page" id="page-summary">
-    <div class="section-title">数据汇总</div>
-
-    <div class="summary-controls">
-      <select class="form-select" id="summaryPeriod" onchange="renderSummary()">
-        <option value="day">按日</option>
-        <option value="week">按周</option>
-      </select>
-      <input type="date" class="form-input" id="summaryDate" onchange="renderSummary()">
-      <select class="form-select" id="summaryChar" onchange="renderSummary()">
-        <option value="">全部角色</option>
-      </select>
-      <button class="btn btn-secondary" onclick="generateSummaryImage()" style="margin-left:auto;">生成古风图片</button>
-    </div>
-
-    <div id="summaryContent"></div>
-  </div>
-
-  <!-- ===== 6. 设置管理 ===== -->
-  <div class="page" id="page-settings">
-    <div class="section-title">设置管理</div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">账号管理</div>
-      <div id="settingsAccounts"></div>
-      <button class="btn btn-outline" onclick="openSettingsModal('account')">+ 新增账号</button>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">区服管理</div>
-      <div id="settingsServers"></div>
-      <button class="btn btn-outline" onclick="openSettingsModal('server')">+ 新增区服</button>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">角色管理</div>
-      <div id="settingsCharacters"></div>
-      <button class="btn btn-outline" onclick="openSettingsModal('character')">+ 新增角色</button>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">收益来源类型</div>
-      <div id="settingsIncomeTypes"></div>
-      <button class="btn btn-outline" onclick="openSettingsModal('incomeType')">+ 新增类型</button>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">数据管理</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-secondary" onclick="exportData()">导出数据</button>
-        <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">导入数据</button>
-        <button class="btn btn-danger" onclick="confirmClearAll()">清空全部数据</button>
-        <input type="file" id="importFile" accept=".json" class="hidden-input" onchange="importData(event)">
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ==================== 底部导航栏 ==================== -->
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="switchTab('home')">
-    <div class="nav-icon">卷</div>
-    <div class="nav-label">首页</div>
-  </div>
-  <div class="nav-item" onclick="switchTab('income')">
-    <div class="nav-icon">金</div>
-    <div class="nav-label">收益</div>
-  </div>
-  <div class="nav-item" onclick="switchTab('encounters')">
-    <div class="nav-icon">遇</div>
-    <div class="nav-label">奇遇</div>
-  </div>
-  <div class="nav-item" onclick="switchTab('tasks')">
-    <div class="nav-icon">勤</div>
-    <div class="nav-label">打卡</div>
-  </div>
-  <div class="nav-item" onclick="switchTab('summary')">
-    <div class="nav-icon">总</div>
-    <div class="nav-label">汇总</div>
-  </div>
-  <div class="nav-item" onclick="switchTab('settings')">
-    <div class="nav-icon">设</div>
-    <div class="nav-label">设置</div>
-  </div>
-</div>
-
-<!-- ==================== 弹窗模板 ==================== -->
-
-<!-- 收益录入弹窗 -->
-<div class="modal-overlay" id="incomeModal">
-  <div class="modal">
-    <div class="modal-title">记录收益</div>
-    <div class="toggle-wrap">
-      <div class="toggle" id="incomeModeToggle" onclick="toggleIncomeMode()"></div>
-      <span class="toggle-label" id="incomeModeLabel">精简模式</span>
-    </div>
-    <div class="form-group">
-      <label class="form-label">选择角色</label>
-      <select class="form-select" id="incomeCharSelect"><option value="">请选择角色</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">金币数额</label>
-      <input type="number" class="form-input" id="incomeAmount" placeholder="输入金币数量">
-    </div>
-    <div id="incomeDetailFields" style="display:none;">
-      <div class="form-group">
-        <label class="form-label">来源类型</label>
-        <select class="form-select" id="incomeTypeSelect"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">物品掉落</label>
-        <textarea class="form-textarea" id="incomeItems" placeholder="描述掉落物品（可选）"></textarea>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">备注</label>
-      <textarea class="form-textarea" id="incomeNote" placeholder="备注信息（可选）"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('incomeModal')">取消</button>
-      <button class="btn btn-primary" onclick="saveIncome()">保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- 奇遇录入弹窗 -->
-<div class="modal-overlay" id="encounterModal">
-  <div class="modal">
-    <div class="modal-title">记录奇遇</div>
-    <div class="form-group">
-      <label class="form-label">奇遇名称</label>
-      <input type="text" class="form-input" id="encounterName" placeholder="输入奇遇名称">
-    </div>
-    <div class="form-group">
-      <label class="form-label">触发日期</label>
-      <input type="date" class="form-input" id="encounterDate">
-    </div>
-    <div class="form-group">
-      <label class="form-label">选择角色</label>
-      <select class="form-select" id="encounterCharSelect"><option value="">请选择角色</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">备注</label>
-      <textarea class="form-textarea" id="encounterNote" placeholder="备注信息（可选）"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('encounterModal')">取消</button>
-      <button class="btn btn-primary" onclick="saveEncounter()">保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- 任务录入弹窗 -->
-<div class="modal-overlay" id="taskModal">
-  <div class="modal">
-    <div class="modal-title">新增任务</div>
-    <div class="form-group">
-      <label class="form-label">任务名称</label>
-      <input type="text" class="form-input" id="taskName" placeholder="输入任务名称">
-    </div>
-    <div class="form-group">
-      <label class="form-label">选择角色</label>
-      <select class="form-select" id="taskCharSelect"><option value="">请选择角色</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">任务类型</label>
-      <select class="form-select" id="taskType">
-        <option value="daily">日常</option>
-        <option value="weekly">周常</option>
-      </select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('taskModal')">取消</button>
-      <button class="btn btn-primary" onclick="saveTask()">保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- 通用设置弹窗 -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <div class="modal-title" id="settingsModalTitle">新增</div>
-    <div id="settingsModalBody"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('settingsModal')">取消</button>
-      <button class="btn btn-primary" onclick="saveSettingsItem()">保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- 确认弹窗 -->
-<div class="modal-overlay confirm-modal" id="confirmModal">
-  <div class="modal">
-    <div class="confirm-text" id="confirmText"></div>
-    <div class="confirm-actions">
-      <button class="btn btn-outline" onclick="closeModal('confirmModal')">取消</button>
-      <button class="btn btn-primary" id="confirmOkBtn">确认</button>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== JavaScript ==================== -->
-<script>
-/* ============================================================
-   剑网三收益记录管理工具 - 核心逻辑
-   ============================================================ */
-
-// ==================== 工具函数 ====================
-
-// 生成唯一ID
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-
-// 日期格式化
-function formatDate(d) {
-  if (!d) d = new Date();
-  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-function formatDateTime(ts) {
-  const d = new Date(ts);
-  return `${formatDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-function today() { return formatDate(new Date()); }
-
-// Toast通知
-function showToast(msg) {
-  const c = document.getElementById('toastContainer');
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 2000);
-}
-
-// 弹窗控制
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-// 确认弹窗
-let _confirmCb = null;
-function showConfirm(text, cb) {
-  _confirmCb = cb;
-  document.getElementById('confirmText').textContent = text;
-  const okBtn = document.getElementById('confirmOkBtn');
-  okBtn.onclick = () => { closeModal('confirmModal'); if (_confirmCb) _confirmCb(); _confirmCb = null; };
-  openModal('confirmModal');
-}
-
-// ==================== 数据存储 ====================
-
-const STORAGE_KEYS = ['jx3_accounts','jx3_servers','jx3_characters','jx3_income_types','jx3_incomes','jx3_encounters','jx3_tasks'];
-
-function loadData(key) {
-  try { return JSON.parse(localStorage.getItem(key)) || []; }
-  catch { return []; }
-}
-function saveData(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
-}
-
-// 获取角色信息
-function getCharName(id) {
-  const c = loadData('jx3_characters').find(c => c.id === id);
-  return c ? c.name : '未知角色';
-}
-function getServerName(id) {
-  const s = loadData('jx3_servers').find(s => s.id === id);
-  return s ? s.name : '';
-}
-function getAccountName(id) {
-  const a = loadData('jx3_accounts').find(a => a.id === id);
-  return a ? a.name : '';
-}
-function getTypeName(id) {
-  const t = loadData('jx3_income_types').find(t => t.id === id);
-  return t ? t.name : '';
-}
-
-// 首次初始化
-function initData() {
-  const types = loadData('jx3_income_types');
-  if (types.length === 0) {
-    saveData('jx3_income_types', [
-      { id: uid(), name: '副本掉落', isDefault: true },
-      { id: uid(), name: '日常奖励', isDefault: true },
-      { id: uid(), name: '奇遇收益', isDefault: true },
-      { id: uid(), name: '活动奖励', isDefault: true },
-      { id: uid(), name: '交易所得', isDefault: true },
-      { id: uid(), name: '其他', isDefault: true }
-    ]);
-  }
-}
-
-// ==================== 诗句池 ====================
-const poems = [
-  "江湖路远，侠客行天下",
-  "十年磨一剑，霜刃未曾试",
-  "一剑霜寒十四州",
-  "长剑倚天外，白酒劝君饮",
-  "侠之大者，为国为民",
-  "事了拂衣去，深藏身与名",
-  "剑气纵横三万里，一剑光寒十九洲",
-  "人生得意须尽欢，莫使金樽空对月",
-  "天生我材必有用，千金散尽还复来",
-  "大漠孤烟直，长河落日圆",
-  "明月松间照，清泉石上流",
-  "风萧萧兮易水寒，壮士一去兮不复还"
-];
-
-// ==================== 农历转换（查表法） ====================
-
-// 农历数据表 2024-2030
-// 每年用16进制编码，前4位表示闰月月份（0无闰月），后12位每位用0/1表示大小月（30/29天）
-const lunarInfo = {
-  2024: [0, 0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2, 0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977],
-  2025: [0, 0x04ae0],
-  2026: [0, 0x0a570],
-  2027: [0, 0x054d5],
-  2028: [0, 0x0d260],
-  2029: [0, 0x0d950],
-  2030: [0, 0x16554]
-};
-
-// 简化农历转换（基于预计算偏移）
-const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
-const lunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
-  '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
-  '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
-
-// 预计算的农历映射表（2024-2030年每月1日对应的农历日期）
-// [农历月, 农历日, 是否闰月]
-const lunarMap = {
-  '2024-01-01': [11,20,false], '2024-02-01': [12,22,false],
-  '2024-02-10': [1,1,false],   // 2024春节
-  '2024-03-01': [1,21,false],
-  '2024-04-01': [2,23,false],
-  '2024-05-01': [3,23,false],
-  '2024-06-01': [4,25,false],
-  '2024-07-01': [5,26,false],
-  '2024-08-01': [6,28,false],
-  '2024-09-01': [7,29,false],
-  '2024-10-01': [8,29,false],
-  '2024-11-01': [10,1,false],
-  '2024-12-01': [11,1,false],
-  '2025-01-01': [12,2,false],
-  '2025-01-29': [1,1,false],   // 2025春节
-  '2025-02-01': [1,4,false],
-  '2025-03-01': [2,2,false],
-  '2025-04-01': [3,4,false],
-  '2025-05-01': [4,4,false],
-  '2025-06-01': [5,6,false],
-  '2025-07-01': [6,7,false],
-  '2025-08-01': [7,8,false],
-  '2025-09-01': [8,10,false],
-  '2025-10-01': [9,10,false],
-  '2025-11-01': [10,11,false],
-  '2025-12-01': [11,12,false],
-  '2026-01-01': [12,13,false],
-  '2026-02-01': [1,14,false],
-  '2026-02-17': [1,30,false],  // 2026春节
-  '2026-03-01': [2,13,false],
-  '2026-04-01': [3,14,false],
-  '2026-05-01': [4,15,false],
-  '2026-06-01': [5,16,false],
-  '2026-07-01': [6,18,false],
-  '2026-08-01': [7,19,false],
-  '2026-09-01': [8,20,false],
-  '2026-10-01': [9,21,false],
-  '2026-11-01': [10,22,false],
-  '2026-12-01': [11,22,false],
-  '2027-01-01': [12,24,false],
-  '2027-02-01': [1,24,false],
-  '2027-02-06': [1,29,false],  // 2027春节
-  '2027-03-01': [2,22,false],
-  '2027-04-01': [3,24,false],
-  '2027-05-01': [4,24,false],
-  '2027-06-01': [5,26,false],
-  '2027-07-01': [6,27,false],
-  '2027-08-01': [7,29,false],
-  '2027-09-01': [8,30,false],
-  '2027-10-01': [10,1,false],
-  '2027-11-01': [11,3,false],
-  '2027-12-01': [12,3,false],
-  '2028-01-01': [1,9,false],
-  '2028-01-26': [2,4,false],   // 2028春节
-  '2028-02-01': [2,10,false],
-  '2028-03-01': [3,10,false],
-  '2028-04-01': [4,11,false],
-  '2028-05-01': [5,12,false],
-  '2028-06-01': [6,14,false],
-  '2028-07-01': [7,15,false],
-  '2028-08-01': [8,16,false],
-  '2028-09-01': [9,17,false],
-  '2028-10-01': [10,18,false],
-  '2028-11-01': [11,19,false],
-  '2028-12-01': [12,20,false],
-  '2029-01-01': [1,21,false],
-  '2029-02-01': [2,21,false],
-  '2029-02-13': [3,5,false],   // 2029春节
-  '2029-03-01': [3,21,false],
-  '2029-04-01': [4,22,false],
-  '2029-05-01': [5,24,false],
-  '2029-06-01': [6,25,false],
-  '2029-07-01': [7,26,false],
-  '2029-08-01': [8,27,false],
-  '2029-09-01': [9,28,false],
-  '2029-10-01': [10,30,false],
-  '2029-11-01': [11,30,false],
-  '2029-12-01': [12,1,false],
-  '2030-01-01': [1,2,false],
-  '2030-02-01': [2,3,false],
-  '2030-02-03': [2,5,false],   // 2030春节
-  '2030-03-01': [3,4,false],
-  '2030-04-01': [4,5,false],
-  '2030-05-01': [5,7,false],
-  '2030-06-01': [6,8,false],
-  '2030-07-01': [7,9,false],
-  '2030-08-01': [8,10,false],
-  '2030-09-01': [9,11,false],
-  '2030-10-01': [10,12,false],
-  '2030-11-01': [11,13,false],
-  '2030-12-01': [12,14,false]
-};
-
-// 获取农历日期
-function getLunarDate(dateStr) {
-  // 先查找精确匹配或最近的
-  const keys = Object.keys(lunarMap).sort();
-  let baseDate = null, baseLunar = null;
-
-  for (const k of keys) {
-    if (k <= dateStr) { baseDate = k; baseLunar = lunarMap[k]; }
-    else break;
-  }
-  if (!baseDate) return '未知';
-
-  // 计算偏移天数
-  const d1 = new Date(baseDate), d2 = new Date(dateStr);
-  const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return '未知';
-
-  // 模拟农历日期推算（简化：假设每月30天）
-  const bigMonths = [1,3,5,7,8,10,12]; // 大月30天
-  let lunarMonth = baseLunar[0], lunarDay = baseLunar[1];
-  lunarDay += diff;
-
-  while (lunarDay > 30) {
-    const daysInMonth = bigMonths.includes(lunarMonth) ? 30 : 29;
-    lunarDay -= daysInMonth;
-    lunarMonth++;
-    if (lunarMonth > 12) lunarMonth -= 12;
-  }
-
-  // 超过范围保护
-  if (lunarMonth < 1 || lunarMonth > 12 || lunarDay < 1 || lunarDay > 30) return '未知';
-
-  return `农历${lunarMonths[lunarMonth-1]}月${lunarDays[lunarDay-1]}`;
-}
-
-// ==================== Tab切换 ====================
-let currentTab = 'home';
-
-function switchTab(tab) {
-  if (tab === currentTab) return;
-  const oldPage = document.getElementById('page-' + currentTab);
-  const newPage = document.getElementById('page-' + tab);
-
-  oldPage.classList.add('fading-out');
-  setTimeout(() => {
-    oldPage.classList.remove('active', 'fading-out');
-    newPage.classList.add('active');
-    currentTab = tab;
-
-    // 更新导航状态
-    document.querySelectorAll('.nav-item').forEach((item, i) => {
-      const tabs = ['home','income','encounters','tasks','summary','settings'];
-      item.classList.toggle('active', tabs[i] === tab);
-    });
-
-    // 刷新页面数据
-    if (tab === 'home') renderHome();
-    else if (tab === 'income') { refreshFilters(); renderIncomeList(); }
-    else if (tab === 'encounters') { refreshEncFilter(); renderEncounterList(); }
-    else if (tab === 'tasks') renderTaskList();
-    else if (tab === 'summary') renderSummary();
-    else if (tab === 'settings') renderSettings();
-  }, 200);
-}
-
-// 任务子Tab
-let currentTaskType = 'daily';
-function switchSubTab(type) {
-  currentTaskType = type;
-  document.querySelectorAll('.sub-tab').forEach((t, i) => {
-    t.classList.toggle('active', (i === 0 && type === 'daily') || (i === 1 && type === 'weekly'));
-  });
-  renderTaskList();
-}
-
-// ==================== 首页总览 ====================
-
-function renderHome() {
-  // 随机诗句
-  document.getElementById('homePoem').textContent = poems[Math.floor(Math.random() * poems.length)];
-
-  // 日期
-  const now = new Date();
-  const weekDays = ['日','一','二','三','四','五','六'];
-  document.getElementById('homeSolarDate').textContent =
-    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${weekDays[now.getDay()]}`;
-  document.getElementById('homeLunarDate').textContent = getLunarDate(today());
-
-  // 今日统计
-  const incomes = loadData('jx3_incomes');
-  const todayIncomes = incomes.filter(i => i.date === today());
-  const todayGold = todayIncomes.reduce((s, i) => s + (i.amount || 0), 0);
-  document.getElementById('homeTodayGold').textContent = todayGold.toLocaleString();
-  document.getElementById('homeTodayCount').textContent = todayIncomes.length;
-
-  // 今日完成日常数
-  const tasks = loadData('jx3_tasks').filter(t => t.type === 'daily');
-  const completedToday = tasks.filter(t => t.completedDates && t.completedDates.includes(today())).length;
-  document.getElementById('homeTodayDailies').textContent = completedToday;
-
-  // 最近5条收益
-  const recent = incomes.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
-  const container = document.getElementById('homeRecentList');
-  if (recent.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">空</div><div class="empty-state-text">暂无收益记录</div></div>';
-  } else {
-    container.innerHTML = recent.map(item => `
-      <div class="list-item">
-        <div class="item-main">
-          <div class="item-time">${formatDateTime(item.timestamp)}</div>
-          <div class="item-title">${getCharName(item.characterId)}</div>
+      <!-- 导航菜单 -->
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-page="home" onclick="switchPage('home')">
+          <span class="nav-icon">卷</span>
+          <span class="nav-label">总览</span>
         </div>
-        <div class="item-amount">${item.amount.toLocaleString()}</div>
+        <div class="nav-item" data-page="records" onclick="switchPage('records')">
+          <span class="nav-icon">金</span>
+          <span class="nav-label">收支</span>
+        </div>
+        <div class="nav-item" data-page="encounters" onclick="switchPage('encounters')">
+          <span class="nav-icon">遇</span>
+          <span class="nav-label">奇遇</span>
+        </div>
+        <div class="nav-item" data-page="tasks" onclick="switchPage('tasks')">
+          <span class="nav-icon">勤</span>
+          <span class="nav-label">任务</span>
+        </div>
+        <div class="nav-item" data-page="summary" onclick="switchPage('summary')">
+          <span class="nav-icon">总</span>
+          <span class="nav-label">汇总</span>
+        </div>
+        <div class="nav-item" data-page="achievements" onclick="switchPage('achievements')">
+          <span class="nav-icon">勋</span>
+          <span class="nav-label">成就</span>
+        </div>
+        <div class="nav-item" data-page="blacklist" onclick="switchPage('blacklist')">
+          <span class="nav-icon">避</span>
+          <span class="nav-label">避雷</span>
+        </div>
+        <div class="nav-item" data-page="community" onclick="switchPage('community')">
+          <span class="nav-icon">聚</span>
+          <span class="nav-label">社区</span>
+        </div>
+        <div class="nav-item" data-page="price" onclick="switchPage('price')">
+          <span class="nav-icon">价</span>
+          <span class="nav-label">物价</span>
+        </div>
+        <div class="nav-item" data-page="settings" onclick="switchPage('settings')">
+          <span class="nav-icon">设</span>
+          <span class="nav-label">设置</span>
+        </div>
+      </nav>
+
+      <!-- 侧边栏底部：语音录入 + 全局搜索 -->
+      <div class="sidebar-footer">
+        <button id="voice-btn" class="voice-btn" title="语音录入">
+          <span class="voice-icon">话</span>
+          <span class="voice-text">语音录入</span>
+        </button>
+        <div class="search-box">
+          <input type="text" id="global-search" placeholder="搜索记录...">
+        </div>
       </div>
-    `).join('');
-  }
-}
+    </aside>
 
-// ==================== 收益记录 ====================
+    <!-- ====== 主内容区 ====== -->
+    <main class="main-content">
 
-let incomeDetailMode = false;
-
-function toggleIncomeMode() {
-  incomeDetailMode = !incomeDetailMode;
-  document.getElementById('incomeModeToggle').classList.toggle('on', incomeDetailMode);
-  document.getElementById('incomeModeLabel').textContent = incomeDetailMode ? '详细模式' : '精简模式';
-  document.getElementById('incomeDetailFields').style.display = incomeDetailMode ? 'block' : 'none';
-}
-
-function refreshFilters() {
-  // 账号
-  const accounts = loadData('jx3_accounts');
-  const fAccount = document.getElementById('filterAccount');
-  fAccount.innerHTML = '<option value="">全部账号</option>' + accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-
-  // 区服
-  const servers = loadData('jx3_servers');
-  const fServer = document.getElementById('filterServer');
-  fServer.innerHTML = '<option value="">全区服</option>' + servers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-
-  // 角色
-  const chars = loadData('jx3_characters');
-  const fChar = document.getElementById('filterChar');
-  fChar.innerHTML = '<option value="">全角色</option>' + chars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-
-  // 收益类型
-  const types = loadData('jx3_income_types');
-  document.getElementById('incomeTypeSelect').innerHTML = types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-
-  // 角色选择弹窗
-  document.getElementById('incomeCharSelect').innerHTML = '<option value="">请选择角色</option>' + chars.map(c => `<option value="${c.id}">${c.name} (${getServerName(c.serverId)})</option>`).join('');
-}
-
-function openIncomeModal() {
-  refreshFilters();
-  document.getElementById('incomeAmount').value = '';
-  document.getElementById('incomeNote').value = '';
-  document.getElementById('incomeItems').value = '';
-  incomeDetailMode = false;
-  document.getElementById('incomeModeToggle').classList.remove('on');
-  document.getElementById('incomeModeLabel').textContent = '精简模式';
-  document.getElementById('incomeDetailFields').style.display = 'none';
-  openModal('incomeModal');
-}
-
-function saveIncome() {
-  const charId = document.getElementById('incomeCharSelect').value;
-  const amount = parseFloat(document.getElementById('incomeAmount').value);
-  if (!charId) { showToast('请选择角色'); return; }
-  if (isNaN(amount) || amount <= 0) { showToast('请输入有效的金币数额'); return; }
-
-  const char = loadData('jx3_characters').find(c => c.id === charId);
-  const income = {
-    id: uid(),
-    characterId: charId,
-    serverId: char ? char.serverId : '',
-    accountId: char ? char.accountId : '',
-    type: incomeDetailMode ? document.getElementById('incomeTypeSelect').value : '',
-    amount: amount,
-    items: incomeDetailMode ? document.getElementById('incomeItems').value : '',
-    note: document.getElementById('incomeNote').value,
-    date: today(),
-    timestamp: Date.now()
-  };
-
-  const incomes = loadData('jx3_incomes');
-  incomes.push(income);
-  saveData('jx3_incomes', incomes);
-
-  closeModal('incomeModal');
-  showToast('收益已记录');
-  renderIncomeList();
-}
-
-function renderIncomeList() {
-  let incomes = loadData('jx3_incomes');
-  const fAccount = document.getElementById('filterAccount').value;
-  const fServer = document.getElementById('filterServer').value;
-  const fChar = document.getElementById('filterChar').value;
-  const fFrom = document.getElementById('filterDateFrom').value;
-  const fTo = document.getElementById('filterDateTo').value;
-
-  if (fAccount) incomes = incomes.filter(i => i.accountId === fAccount);
-  if (fServer) incomes = incomes.filter(i => i.serverId === fServer);
-  if (fChar) incomes = incomes.filter(i => i.characterId === fChar);
-  if (fFrom) incomes = incomes.filter(i => i.date >= fFrom);
-  if (fTo) incomes = incomes.filter(i => i.date <= fTo);
-
-  incomes.sort((a, b) => b.timestamp - a.timestamp);
-
-  const container = document.getElementById('incomeList');
-  if (incomes.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">空</div><div class="empty-state-text">暂无收益记录</div></div>';
-    return;
-  }
-
-  container.innerHTML = incomes.map(item => `
-    <div class="list-item" data-id="${item.id}" onmousedown="startSwipe(event, '${item.id}')" ontouchstart="startSwipe(event, '${item.id}')">
-      <div class="item-main">
-        <div class="item-time">${formatDateTime(item.timestamp)}</div>
-        <div class="item-title">${getCharName(item.characterId)} ${item.type ? '<span class="tag">' + getTypeName(item.type) + '</span>' : ''}</div>
-        ${item.note ? '<div class="item-desc">' + item.note + '</div>' : ''}
-      </div>
-      <div class="item-amount">${item.amount.toLocaleString()}</div>
-      <div class="item-actions">
-        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px;" onclick="deleteIncome('${item.id}')">删</button>
-      </div>
-    </div>
-  `).join('');
-
-  initSortable('incomeList');
-}
-
-function deleteIncome(id) {
-  showConfirm('确定删除此条收益记录？', () => {
-    const el = document.querySelector(`.list-item[data-id="${id}"]`);
-    if (el) {
-      el.classList.add('sweep-out');
-      setTimeout(() => {
-        let incomes = loadData('jx3_incomes');
-        incomes = incomes.filter(i => i.id !== id);
-        saveData('jx3_incomes', incomes);
-        renderIncomeList();
-        showToast('已删除');
-      }, 500);
-    } else {
-      let incomes = loadData('jx3_incomes');
-      incomes = incomes.filter(i => i.id !== id);
-      saveData('jx3_incomes', incomes);
-      renderIncomeList();
-      showToast('已删除');
-    }
-  });
-}
-
-// ==================== 奇遇台账 ====================
-
-function refreshEncFilter() {
-  const chars = loadData('jx3_characters');
-  document.getElementById('filterEncChar').innerHTML = '<option value="">全角色</option>' + chars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('encounterCharSelect').innerHTML = '<option value="">请选择角色</option>' + chars.map(c => `<option value="${c.id}">${c.name} (${getServerName(c.serverId)})</option>`).join('');
-  document.getElementById('encounterDate').value = today();
-}
-
-function openEncounterModal() {
-  refreshEncFilter();
-  document.getElementById('encounterName').value = '';
-  document.getElementById('encounterNote').value = '';
-  openModal('encounterModal');
-}
-
-function saveEncounter() {
-  const name = document.getElementById('encounterName').value.trim();
-  const charId = document.getElementById('encounterCharSelect').value;
-  const date = document.getElementById('encounterDate').value;
-  if (!name) { showToast('请输入奇遇名称'); return; }
-  if (!charId) { showToast('请选择角色'); return; }
-
-  const char = loadData('jx3_characters').find(c => c.id === charId);
-  const enc = {
-    id: uid(),
-    name: name,
-    characterId: charId,
-    serverId: char ? char.serverId : '',
-    accountId: char ? char.accountId : '',
-    note: document.getElementById('encounterNote').value,
-    date: date,
-    timestamp: Date.now()
-  };
-
-  const encs = loadData('jx3_encounters');
-  encs.push(enc);
-  saveData('jx3_encounters', encs);
-
-  closeModal('encounterModal');
-  showToast('奇遇已记录');
-  renderEncounterList();
-}
-
-function renderEncounterList() {
-  let encs = loadData('jx3_encounters');
-  const fChar = document.getElementById('filterEncChar').value;
-  if (fChar) encs = encs.filter(e => e.characterId === fChar);
-  encs.sort((a, b) => b.timestamp - a.timestamp);
-
-  document.getElementById('encounterTotal').textContent = encs.length;
-
-  const container = document.getElementById('encounterList');
-  if (encs.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">空</div><div class="empty-state-text">暂无奇遇记录</div></div>';
-    return;
-  }
-
-  container.innerHTML = encs.map(e => `
-    <div class="list-item" data-id="${e.id}">
-      <div class="item-main">
-        <div class="item-time">${e.date}</div>
-        <div class="item-title" style="color:var(--red-primary);font-family:var(--font-title);font-size:18px;">${e.name}</div>
-        <div class="item-desc">${getCharName(e.characterId)} ${e.note ? '- ' + e.note : ''}</div>
-      </div>
-      <div class="item-actions">
-        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px;" onclick="deleteEncounter('${e.id}')">删</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function deleteEncounter(id) {
-  showConfirm('确定删除此条奇遇记录？', () => {
-    const el = document.querySelector(`.list-item[data-id="${id}"]`);
-    if (el) {
-      el.classList.add('sweep-out');
-      setTimeout(() => {
-        let encs = loadData('jx3_encounters');
-        encs = encs.filter(e => e.id !== id);
-        saveData('jx3_encounters', encs);
-        renderEncounterList();
-        showToast('已删除');
-      }, 500);
-    } else {
-      let encs = loadData('jx3_encounters');
-      encs = encs.filter(e => e.id !== id);
-      saveData('jx3_encounters', encs);
-      renderEncounterList();
-      showToast('已删除');
-    }
-  });
-}
-
-// ==================== 任务打卡 ====================
-
-let swipeStartX = 0;
-let swipeCurrentId = null;
-
-function openTaskModal() {
-  const chars = loadData('jx3_characters');
-  document.getElementById('taskCharSelect').innerHTML = '<option value="">请选择角色</option>' + chars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('taskName').value = '';
-  document.getElementById('taskType').value = currentTaskType;
-  openModal('taskModal');
-}
-
-function saveTask() {
-  const name = document.getElementById('taskName').value.trim();
-  const charId = document.getElementById('taskCharSelect').value;
-  const type = document.getElementById('taskType').value;
-  if (!name) { showToast('请输入任务名称'); return; }
-  if (!charId) { showToast('请选择角色'); return; }
-
-  const tasks = loadData('jx3_tasks');
-  const maxOrder = tasks.filter(t => t.type === type).reduce((m, t) => Math.max(m, t.sortOrder || 0), 0);
-  tasks.push({
-    id: uid(),
-    characterId: charId,
-    name: name,
-    type: type,
-    completedDates: [],
-    sortOrder: maxOrder + 1
-  });
-  saveData('jx3_tasks', tasks);
-  closeModal('taskModal');
-  showToast('任务已添加');
-  renderTaskList();
-}
-
-function toggleTaskComplete(id) {
-  const tasks = loadData('jx3_tasks');
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
-
-  if (!task.completedDates) task.completedDates = [];
-  const d = today();
-  const idx = task.completedDates.indexOf(d);
-
-  if (idx === -1) {
-    task.completedDates.push(d);
-    // 盖章动效
-    const el = document.querySelector(`.task-item[data-id="${id}"]`);
-    if (el) {
-      const stamp = document.createElement('div');
-      stamp.className = 'stamp-effect';
-      stamp.textContent = '印';
-      el.appendChild(stamp);
-      setTimeout(() => stamp.remove(), 1500);
-    }
-  } else {
-    task.completedDates.splice(idx, 1);
-  }
-
-  saveData('jx3_tasks', tasks);
-  setTimeout(() => renderTaskList(), 300);
-}
-
-function deleteTask(id) {
-  showConfirm('确定删除此任务？', () => {
-    let tasks = loadData('jx3_tasks');
-    tasks = tasks.filter(t => t.id !== id);
-    saveData('jx3_tasks', tasks);
-    renderTaskList();
-    showToast('任务已删除');
-  });
-}
-
-function renderTaskList() {
-  const allTasks = loadData('jx3_tasks');
-  const todayStr = today();
-
-  // 计算完成率
-  const dailyTasks = allTasks.filter(t => t.type === 'daily');
-  const weeklyTasks = allTasks.filter(t => t.type === 'weekly');
-
-  const dailyCompleted = dailyTasks.filter(t => t.completedDates && t.completedDates.includes(todayStr)).length;
-  const dailyTotal = dailyTasks.length;
-  const dailyPct = dailyTotal > 0 ? Math.round(dailyCompleted / dailyTotal * 100) : 0;
-  document.getElementById('dailyRate').textContent = dailyPct + '%';
-  document.getElementById('dailyBar').style.width = dailyPct + '%';
-
-  // 本周周常
-  const weekStart = getWeekStart(todayStr);
-  const weeklyCompleted = weeklyTasks.filter(t => t.completedDates && t.completedDates.some(d => d >= weekStart && d <= todayStr)).length;
-  const weeklyTotal = weeklyTasks.length;
-  const weeklyPct = weeklyTotal > 0 ? Math.round(weeklyCompleted / weeklyTotal * 100) : 0;
-  document.getElementById('weeklyRate').textContent = weeklyPct + '%';
-  document.getElementById('weeklyBar').style.width = weeklyPct + '%';
-
-  // 当前类型任务列表
-  const typeTasks = allTasks.filter(t => t.type === currentTaskType).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-
-  // 按角色分组
-  const chars = loadData('jx3_characters');
-  const groups = {};
-  typeTasks.forEach(t => {
-    const name = getCharName(t.characterId);
-    if (!groups[t.characterId]) groups[t.characterId] = [];
-    groups[t.characterId].push(t);
-  });
-
-  const container = document.getElementById('taskList');
-  if (typeTasks.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">空</div><div class="empty-state-text">暂无任务，点击新增添加</div></div>';
-    return;
-  }
-
-  let html = '';
-  for (const [charId, tasks] of Object.entries(groups)) {
-    html += `<div class="task-group-title">${getCharName(charId)}</div>`;
-    html += '<div class="task-group" data-char="' + charId + '">';
-    tasks.forEach(t => {
-      const isCompleted = t.completedDates && t.completedDates.includes(todayStr);
-      html += `
-        <div class="task-item ${isCompleted ? 'completed' : ''}" data-id="${t.id}"
-             onclick="toggleTaskComplete('${t.id}')"
-             oncontextmenu="event.preventDefault();deleteTask('${t.id}')">
-          <div class="task-check" onclick="event.stopPropagation();toggleTaskComplete('${t.id}')">
-            ${isCompleted ? '✓' : ''}
+      <!-- ========== 首页总览 ========== -->
+      <div class="page active" id="page-home">
+        <!-- 古风诗句横幅 -->
+        <div class="home-poem-bar"><span id="home-poem"></span></div>
+        <!-- 今日日期 -->
+        <div class="home-date-bar"><span id="home-date"></span></div>
+        <!-- 收益统计三宫格 -->
+        <div class="home-stats-grid">
+          <div class="scroll-card">
+            <div class="stat-label">今日收入</div>
+            <div class="stat-number gold" id="home-income-total">0</div>
           </div>
-          <div class="task-name">${t.name}</div>
-          <span class="tag task-type-tag">${t.type === 'daily' ? '日常' : '周常'}</span>
+          <div class="scroll-card">
+            <div class="stat-label">今日支出</div>
+            <div class="stat-number red" id="home-expense-total">0</div>
+          </div>
+          <div class="scroll-card">
+            <div class="stat-label">今日净收益</div>
+            <div class="stat-number" id="home-net-income">0</div>
+          </div>
         </div>
-      `;
-    });
-    html += '</div>';
-  }
-  container.innerHTML = html;
-
-  // 初始化拖拽排序
-  document.querySelectorAll('.task-group').forEach(group => {
-    new Sortable(group, {
-      animation: 200,
-      handle: '.task-item',
-      ghostClass: 'sweep-out',
-      onEnd: function() {
-        // 更新排序
-        const items = group.querySelectorAll('.task-item');
-        items.forEach((el, idx) => {
-          const id = el.dataset.id;
-          const tasks = loadData('jx3_tasks');
-          const task = tasks.find(t => t.id === id);
-          if (task) { task.sortOrder = idx; }
-          saveData('jx3_tasks', tasks);
-        });
-      }
-    });
-  });
-}
-
-function getWeekStart(dateStr) {
-  const d = new Date(dateStr);
-  const day = d.getDay() || 7; // 周一为起始
-  d.setDate(d.getDate() - day + 1);
-  return formatDate(d);
-}
-
-// ==================== 左滑检测（简化鼠标/触摸） ====================
-function startSwipe(e, id) {
-  // 暂不实现复杂的左滑，使用删除按钮
-}
-
-// ==================== 数据汇总 ====================
-
-function renderSummary() {
-  const period = document.getElementById('summaryPeriod').value;
-  const dateStr = document.getElementById('summaryDate').value || today();
-  const charFilter = document.getElementById('summaryChar').value;
-
-  // 填充角色选项
-  const chars = loadData('jx3_characters');
-  const selChar = document.getElementById('summaryChar');
-  if (selChar.options.length <= 1) {
-    selChar.innerHTML = '<option value="">全部角色</option>' + chars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  }
-
-  // 日期范围
-  let dateFrom, dateTo;
-  if (period === 'day') {
-    dateFrom = dateTo = dateStr;
-  } else {
-    const d = new Date(dateStr);
-    const day = d.getDay() || 7;
-    d.setDate(d.getDate() - day + 1);
-    dateFrom = formatDate(d);
-    dateTo = dateStr;
-  }
-
-  // 筛选数据
-  let incomes = loadData('jx3_incomes').filter(i => i.date >= dateFrom && i.date <= dateTo);
-  if (charFilter) incomes = incomes.filter(i => i.characterId === charFilter);
-
-  const encounters = loadData('jx3_encounters').filter(e => e.date >= dateFrom && e.date <= dateTo);
-  if (charFilter) {
-    encounters.filter(e => e.characterId === charFilter);
-  }
-
-  const tasks = loadData('jx3_tasks');
-  const dailyTasks = tasks.filter(t => t.type === 'daily');
-  const weeklyTasks = tasks.filter(t => t.type === 'weekly');
-  let dailyCompleted, weeklyCompleted;
-
-  if (period === 'day') {
-    dailyCompleted = dailyTasks.filter(t => t.completedDates && t.completedDates.includes(dateStr)).length;
-    weeklyCompleted = weeklyTasks.filter(t => t.completedDates && t.completedDates.some(d => d >= getWeekStart(dateStr) && d <= dateStr)).length;
-  } else {
-    dailyCompleted = dailyTasks.filter(t => t.completedDates && t.completedDates.some(d => d >= dateFrom && d <= dateTo)).length;
-    weeklyCompleted = weeklyTasks.filter(t => t.completedDates && t.completedDates.some(d => d >= dateFrom && d <= dateTo)).length;
-  }
-
-  const totalGold = incomes.reduce((s, i) => s + (i.amount || 0), 0);
-  const totalCount = incomes.length;
-
-  // 各来源类型占比
-  const types = loadData('jx3_income_types');
-  const typeStats = {};
-  incomes.forEach(i => {
-    if (i.type) typeStats[i.type] = (typeStats[i.type] || 0) + i.amount;
-  });
-  const maxTypeAmount = Math.max(...Object.values(typeStats), 1);
-
-  // 各角色收益
-  const charStats = {};
-  incomes.forEach(i => {
-    const name = getCharName(i.characterId);
-    charStats[name] = (charStats[name] || 0) + i.amount;
-  });
-  const maxCharAmount = Math.max(...Object.values(charStats), 1);
-
-  const label = period === 'day' ? dateStr : `${dateFrom} ~ ${dateTo}`;
-  const charName = charFilter ? getCharName(charFilter) : '全部角色';
-
-  let html = `
-    <div class="summary-big-number">${totalGold.toLocaleString()}</div>
-    <div class="summary-big-label">${charName} · ${label} · 总金币收益</div>
-
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
-      <div class="card stat-card">
-        <div class="stat-number" style="font-size:24px;">${totalCount}</div>
-        <div class="stat-label">收益笔数</div>
+        <!-- 本周目标进度 -->
+        <div class="scroll-card home-goal-section">
+          <div class="section-title">本周目标</div>
+          <div class="progress-bar"><div class="progress-fill" id="home-goal-fill" style="width:0%"></div></div>
+          <div class="progress-text" id="home-goal-text">0 / 0 金</div>
+        </div>
+        <!-- 最近记录列表 -->
+        <div class="scroll-card">
+          <div class="section-title">最近记录</div>
+          <div id="home-recent-list" class="recent-list"></div>
+        </div>
+        <!-- 快捷操作 -->
+        <div class="home-quick-actions">
+          <button class="btn btn-stamp" onclick="openRecordModal()">速记收益</button>
+          <button class="btn btn-stamp" onclick="switchPage('tasks')">打卡日常</button>
+        </div>
       </div>
-      <div class="card stat-card">
-        <div class="stat-number" style="font-size:24px;">${encounters.length}</div>
-        <div class="stat-label">奇遇触发</div>
+
+      <!-- ========== 收益记录页 ========== -->
+      <div class="page" id="page-records">
+        <div class="page-header">
+          <div class="section-title">收支流水</div>
+          <button class="btn btn-stamp" onclick="openRecordModal()">+ 记一笔</button>
+        </div>
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+          <select id="record-filter-account" class="form-select" onchange="renderRecordList()"><option value="">全部账号</option></select>
+          <select id="record-filter-server" class="form-select" onchange="renderRecordList()"><option value="">全部区服</option></select>
+          <select id="record-filter-char" class="form-select" onchange="renderRecordList()"><option value="">全部角色</option></select>
+          <input type="date" id="record-filter-date-from" class="form-input" onchange="renderRecordList()">
+          <input type="date" id="record-filter-date-to" class="form-input" onchange="renderRecordList()">
+        </div>
+        <!-- 记录列表容器 -->
+        <div id="record-list" class="list-container"></div>
       </div>
-      <div class="card stat-card">
-        <div class="stat-number" style="font-size:24px;">${dailyTasks.length > 0 ? Math.round(dailyCompleted / dailyTasks.length * 100) : 0}%</div>
-        <div class="stat-label">日常完成率</div>
+
+      <!-- ========== 奇遇台账页 ========== -->
+      <div class="page" id="page-encounters">
+        <div class="page-header">
+          <div class="section-title">奇遇台账</div>
+          <button class="btn btn-stamp" onclick="openEncounterModal()">+ 记奇遇</button>
+        </div>
+        <!-- 奇遇统计栏 -->
+        <div class="encounter-stats-bar" id="encounter-stats"></div>
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+          <select id="encounter-filter-char" class="form-select" onchange="renderEncounterList()"><option value="">全部角色</option></select>
+          <select id="encounter-filter-rarity" class="form-select" onchange="renderEncounterList()">
+            <option value="">全部奇遇</option>
+            <option value="peerless">绝世奇遇</option>
+            <option value="normal">普通奇遇</option>
+          </select>
+        </div>
+        <!-- 奇遇列表容器 -->
+        <div id="encounter-list" class="list-container"></div>
+      </div>
+
+      <!-- ========== 任务打卡页 ========== -->
+      <div class="page" id="page-tasks">
+        <div class="page-header">
+          <div class="section-title">任务打卡</div>
+          <button class="btn btn-stamp" onclick="openTaskModal()">+ 新增任务</button>
+        </div>
+        <!-- 任务类型切换 -->
+        <div class="task-tabs">
+          <button class="task-tab active" id="task-tab-daily" onclick="switchTaskTab('daily')">每日必做</button>
+          <button class="task-tab" id="task-tab-weekly" onclick="switchTaskTab('weekly')">每周必做</button>
+        </div>
+        <!-- 完成率进度 -->
+        <div class="task-progress-section">
+          <span id="task-progress-text">完成率 0%</span>
+          <div class="progress-bar"><div class="progress-fill" id="task-progress-fill" style="width:0%"></div></div>
+        </div>
+        <!-- 任务列表容器 -->
+        <div id="task-list" class="task-list-container"></div>
+      </div>
+
+      <!-- ========== 数据汇总页 ========== -->
+      <div class="page" id="page-summary">
+        <div class="page-header">
+          <div class="section-title">数据汇总</div>
+          <button class="btn btn-stamp" onclick="generateSummaryImage()">生成图片</button>
+        </div>
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+          <select id="summary-period" class="form-select" onchange="renderSummary()">
+            <option value="day">按日</option>
+            <option value="week">按周</option>
+          </select>
+          <input type="date" id="summary-date" class="form-input" onchange="renderSummary()">
+          <select id="summary-char" class="form-select" onchange="renderSummary()"><option value="">全部角色</option></select>
+        </div>
+        <!-- 汇总内容容器 -->
+        <div id="summary-content"></div>
+        <!-- 收益趋势图表 -->
+        <div class="scroll-card">
+          <div class="section-title">收益趋势</div>
+          <canvas id="summary-chart-canvas" width="800" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- ========== 成就徽章页 ========== -->
+      <div class="page" id="page-achievements">
+        <div class="page-header">
+          <div class="section-title">成就徽章</div>
+          <button class="btn btn-stamp" id="achievement-share-btn" onclick="generateAchievementPoster()">生成海报</button>
+        </div>
+        <!-- 成就列表网格 -->
+        <div id="achievement-list" class="achievement-grid"></div>
+        <!-- 海报画布（隐藏，用于导出） -->
+        <canvas id="achievement-poster-canvas" width="800" height="1200" style="display:none"></canvas>
+      </div>
+
+      <!-- ========== 避雷名单页 ========== -->
+      <div class="page" id="page-blacklist">
+        <div class="page-header">
+          <div class="section-title">避雷名单</div>
+          <button class="btn btn-stamp" onclick="openBlacklistModal()">+ 添加记录</button>
+        </div>
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+          <select id="blacklist-filter-type" class="form-select" onchange="renderBlacklist()">
+            <option value="">全部类型</option>
+            <option value="team">团牌</option>
+            <option value="id">游戏ID</option>
+            <option value="uid">UID</option>
+          </select>
+          <input type="text" id="blacklist-filter-keyword" class="form-input" placeholder="搜索..." oninput="renderBlacklist()">
+        </div>
+        <!-- 避雷列表容器 -->
+        <div id="blacklist-list" class="list-container"></div>
+      </div>
+
+      <!-- ========== 社区页（占位） ========== -->
+      <div class="page" id="page-community">
+        <div class="scroll-card placeholder-card">
+          <div class="placeholder-icon">聚</div>
+          <div class="placeholder-title">社区功能即将开放</div>
+          <div class="placeholder-desc">未来将支持玩家收益排行、奇遇欧气榜、避雷信息共享等社区功能，敬请期待。</div>
+        </div>
+      </div>
+
+      <!-- ========== 物价库页（占位） ========== -->
+      <div class="page" id="page-price">
+        <div class="scroll-card placeholder-card">
+          <div class="placeholder-icon">价</div>
+          <div class="placeholder-title">物价参考库即将开放</div>
+          <div class="placeholder-desc">未来将提供拍卖行价格趋势、材料物价浮动等参考数据，为萌新玩家保驾护航。</div>
+        </div>
+      </div>
+
+      <!-- ========== 设置页 ========== -->
+      <div class="page" id="page-settings">
+        <!-- 账号管理 -->
+        <div class="settings-section">
+          <div class="settings-section-title">账号管理</div>
+          <div id="settings-accounts" class="settings-list"></div>
+          <button class="btn btn-outline" onclick="openSettingsModal('account')">+ 新增账号</button>
+        </div>
+        <!-- 区服管理 -->
+        <div class="settings-section">
+          <div class="settings-section-title">区服管理</div>
+          <div id="settings-servers" class="settings-list"></div>
+          <button class="btn btn-outline" onclick="openSettingsModal('server')">+ 新增区服</button>
+        </div>
+        <!-- 角色管理 -->
+        <div class="settings-section">
+          <div class="settings-section-title">角色管理</div>
+          <div id="settings-characters" class="settings-list"></div>
+          <button class="btn btn-outline" onclick="openSettingsModal('character')">+ 新增角色</button>
+        </div>
+        <!-- 收益来源类型 -->
+        <div class="settings-section">
+          <div class="settings-section-title">收益来源类型</div>
+          <div id="settings-types" class="settings-list"></div>
+          <button class="btn btn-outline" onclick="openSettingsModal('incomeType')">+ 新增类型</button>
+        </div>
+        <!-- 数据管理 -->
+        <div class="settings-section">
+          <div class="settings-section-title">数据管理</div>
+          <div class="settings-data-actions">
+            <button class="btn btn-secondary" onclick="exportData()">导出JSON</button>
+            <input type="file" id="import-file" accept=".json" class="hidden-input" onchange="importData(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">导入JSON</button>
+            <button class="btn btn-secondary" onclick="exportCSV()">导出CSV</button>
+            <button class="btn btn-danger" onclick="confirmClearAll()">清空全部</button>
+          </div>
+          <div class="settings-backup-info" id="last-backup-info"></div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ====== 右侧辅助栏（桌面180px，移动隐藏） ====== -->
+    <aside class="side-panel">
+      <!-- 竖排标题 -->
+      <div class="side-panel-title">江湖速记</div>
+      <!-- 快捷工具区 -->
+      <div class="side-panel-content">
+        <button class="side-quick" data-action="record" onclick="openRecordModal()">速记收益</button>
+        <button class="side-quick" data-action="task" onclick="switchPage('tasks')">打卡日常</button>
+        <button class="side-quick" data-action="encounter" onclick="openEncounterModal()">记奇遇</button>
+      </div>
+    </aside>
+
+  </div><!-- /app-shell -->
+
+
+  <!-- ============================================================ -->
+  <!-- ============             弹窗区域             ============ -->
+  <!-- ============================================================ -->
+
+  <!-- 录入弹窗 -->
+  <div class="modal-overlay" id="record-modal">
+    <div class="modal">
+      <div class="modal-title">记一笔</div>
+      <div class="modal-body">
+        <!-- 收支类型切换 -->
+        <div class="form-group">
+          <label class="form-label">收支类型</label>
+          <div class="btn-toggle-group">
+            <button class="btn-toggle active" id="record-type-income" onclick="setRecordType('income')">收入</button>
+            <button class="btn-toggle" id="record-type-expense" onclick="setRecordType('expense')">支出</button>
+          </div>
+        </div>
+        <!-- 角色选择 -->
+        <div class="form-group">
+          <label class="form-label">角色</label>
+          <select id="record-char" class="form-select"></select>
+        </div>
+        <!-- 快捷选择面板 -->
+        <div class="form-group">
+          <label class="form-label">快捷选择</label>
+          <div class="quick-panel" id="record-category-panel">
+            <button class="quick-btn" data-amount="100" data-name="茶馆">茶馆 100</button>
+            <button class="quick-btn" data-amount="100" data-name="矿车">矿车 100</button>
+            <button class="quick-btn" data-amount="400" data-name="攻防前置">攻防前置 400</button>
+            <button class="quick-btn" data-amount="40" data-name="大战·单人">大战·单人 40</button>
+            <button class="quick-btn" data-amount="250" data-name="大战·多人">大战·多人 250</button>
+            <button class="quick-btn" data-amount="75" data-name="跑商·满额">跑商·满额 75</button>
+            <button class="quick-btn" data-amount="50" data-name="跑商·被劫一次">跑商·被劫 50</button>
+            <button class="quick-btn" data-amount="25" data-name="跑商·被劫两次">跑商·被劫2次 25</button>
+            <button class="quick-btn" data-amount="0" data-name="其他">其他 自定义</button>
+          </div>
+        </div>
+        <!-- 来源类型 -->
+        <div class="form-group">
+          <label class="form-label">来源类型</label>
+          <select id="record-income-type" class="form-select"></select>
+        </div>
+        <!-- 金额输入 -->
+        <div class="form-group">
+          <label class="form-label">金额</label>
+          <div class="amount-row">
+            <input type="number" id="record-amount" class="form-input" placeholder="输入金额">
+            <div class="quick-amount-buttons">
+              <button class="quick-amt-btn" onclick="adjustAmount(100)">+100</button>
+              <button class="quick-amt-btn" onclick="adjustAmount(1000)">+1000</button>
+              <button class="quick-amt-btn" onclick="adjustAmount(-100)">-100</button>
+              <button class="quick-amt-btn" onclick="adjustAmount(-1000)">-1000</button>
+            </div>
+          </div>
+        </div>
+        <!-- 物品/掉落描述（仅详情显示） -->
+        <div class="form-group detail-only">
+          <label class="form-label">物品/掉落描述</label>
+          <input type="text" id="record-items" class="form-input" placeholder="如：玄晶、特殊装备等">
+        </div>
+        <!-- 备注 -->
+        <div class="form-group">
+          <label class="form-label">备注</label>
+          <textarea id="record-note" class="form-textarea" rows="2" placeholder="备注信息"></textarea>
+        </div>
+        <!-- 历史记录快速填入 -->
+        <div class="form-group">
+          <label class="form-label">历史记录</label>
+          <select id="record-history" class="form-select" onchange="loadFromHistory(this.value)">
+            <option value="">选择历史记录快速填入...</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('record-modal')">取消</button>
+        <button class="btn btn-primary" onclick="saveRecord()">保存</button>
       </div>
     </div>
-  `;
+  </div>
 
-  // 来源类型图表
-  if (Object.keys(typeStats).length > 0) {
-    html += '<div class="summary-chart-section">';
-    html += '<div class="summary-chart-title">各来源类型收益</div>';
-    const colors = ['red','gold','teal','red','gold','teal'];
-    let ci = 0;
-    for (const [tid, amount] of Object.entries(typeStats)) {
-      const name = getTypeName(tid) || '未知';
-      const pct = Math.round(amount / totalGold * 100);
-      const barPct = Math.round(amount / maxTypeAmount * 100);
-      html += `
-        <div class="chart-bar-group">
-          <div class="chart-bar-label"><span>${name}</span><span>${amount.toLocaleString()} (${pct}%)</span></div>
-          <div class="chart-bar"><div class="chart-bar-fill ${colors[ci++ % 3]}" style="width:${barPct}%"></div></div>
+  <!-- 奇遇弹窗 -->
+  <div class="modal-overlay" id="encounter-modal">
+    <div class="modal">
+      <div class="modal-title">记录奇遇</div>
+      <div class="modal-body">
+        <!-- 奇遇名称选择 -->
+        <div class="form-group">
+          <label class="form-label">奇遇名称</label>
+          <select id="encounter-select" class="form-select">
+            <optgroup label="绝世奇遇" id="encounter-opt-peerless"></optgroup>
+            <optgroup label="普通奇遇" id="encounter-opt-normal"></optgroup>
+            <option value="custom">— 自定义输入 —</option>
+          </select>
         </div>
-      `;
-    }
-    html += '</div>';
-  }
-
-  // 角色对比图
-  if (Object.keys(charStats).length > 0) {
-    html += '<div class="summary-chart-section">';
-    html += '<div class="summary-chart-title">各角色收益对比</div>';
-    for (const [name, amount] of Object.entries(charStats)) {
-      const barPct = Math.round(amount / maxCharAmount * 100);
-      html += `
-        <div class="chart-horizontal">
-          <div class="chart-bar-label"><span>${name}</span><span>${amount.toLocaleString()}</span></div>
-          <div class="chart-bar"><div class="chart-bar-fill" style="width:${barPct}%"></div></div>
+        <!-- 自定义名称输入（默认隐藏） -->
+        <div class="form-group" id="encounter-custom-wrap" style="display:none">
+          <input type="text" id="encounter-custom-name" class="form-input" placeholder="输入奇遇名称">
         </div>
-      `;
-    }
-    html += '</div>';
-  }
-
-  document.getElementById('summaryContent').innerHTML = html;
-}
-
-// ==================== Canvas古风图片生成 ====================
-
-function generateSummaryImage() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 800;
-  canvas.height = 1200;
-  const ctx = canvas.getContext('2d');
-
-  // 底色（宣纸色）
-  ctx.fillStyle = '#F5F0E8';
-  ctx.fillRect(0, 0, 800, 1200);
-
-  // 纸纹
-  for (let i = 0; i < 200; i++) {
-    ctx.beginPath();
-    ctx.arc(Math.random() * 800, Math.random() * 1200, Math.random() * 3, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(180,170,150,${Math.random() * 0.05})`;
-    ctx.fill();
-  }
-
-  // 外边框（红色）
-  ctx.strokeStyle = '#B22222';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(30, 30, 740, 1140);
-
-  // 内边框（金色）
-  ctx.strokeStyle = '#C8A45C';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(40, 40, 720, 1120);
-
-  // 祥云装饰（左上）
-  drawCloud(ctx, 80, 80);
-  // 祥云装饰（右上）
-  drawCloud(ctx, 680, 80);
-
-  // 标题
-  ctx.fillStyle = '#B22222';
-  ctx.font = '48px "Ma Shan Zheng", cursive';
-  ctx.textAlign = 'center';
-  ctx.fillText('剑网三收益汇总', 400, 160);
-
-  // 分割线
-  ctx.beginPath();
-  ctx.moveTo(120, 185);
-  ctx.lineTo(680, 185);
-  ctx.strokeStyle = '#C8A45C';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // 获取汇总数据
-  const dateStr = document.getElementById('summaryDate').value || today();
-  const charFilter = document.getElementById('summaryChar').value;
-  const charName = charFilter ? getCharName(charFilter) : '全部角色';
-
-  let incomes = loadData('jx3_incomes').filter(i => i.date === dateStr);
-  if (charFilter) incomes = incomes.filter(i => i.characterId === charFilter);
-  const totalGold = incomes.reduce((s, i) => s + (i.amount || 0), 0);
-
-  // 日期和角色
-  ctx.font = '24px "Noto Serif SC", serif';
-  ctx.fillStyle = '#5B7F8A';
-  ctx.fillText(`${dateStr} · ${charName}`, 400, 230);
-
-  // 总金币（大字）
-  ctx.font = '72px "Ma Shan Zheng", cursive';
-  ctx.fillStyle = '#B22222';
-  ctx.fillText(totalGold.toLocaleString(), 400, 340);
-  ctx.font = '24px "Noto Serif SC", serif';
-  ctx.fillStyle = '#5B7F8A';
-  ctx.fillText('总金币收益', 400, 380);
-
-  // 分割线
-  ctx.beginPath();
-  ctx.moveTo(120, 410);
-  ctx.lineTo(680, 410);
-  ctx.strokeStyle = '#E8E2D8';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // 各来源
-  const types = loadData('jx3_income_types');
-  const typeStats = {};
-  incomes.forEach(i => { if (i.type) typeStats[i.type] = (typeStats[i.type] || 0) + i.amount; });
-
-  ctx.font = '28px "Ma Shan Zheng", cursive';
-  ctx.fillStyle = '#5B7F8A';
-  ctx.textAlign = 'left';
-  ctx.fillText('收益来源明细', 80, 460);
-
-  let yPos = 510;
-  const colors = ['#B22222', '#C8A45C', '#5B7F8A', '#8B6B3D', '#6B8B8B'];
-  let colorIdx = 0;
-  for (const [tid, amount] of Object.entries(typeStats)) {
-    const name = getTypeName(tid) || '未知';
-    const pct = Math.round(amount / Math.max(totalGold, 1) * 100);
-
-    ctx.font = '20px "Noto Serif SC", serif';
-    ctx.fillStyle = '#2C2C2C';
-    ctx.fillText(name, 100, yPos);
-
-    ctx.fillStyle = '#5B7F8A';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${amount.toLocaleString()} (${pct}%)`, 680, yPos);
-    ctx.textAlign = 'left';
-
-    // 简单条形
-    yPos += 14;
-    ctx.fillStyle = '#E8E2D8';
-    ctx.fillRect(100, yPos, 580, 12);
-    ctx.fillStyle = colors[colorIdx % colors.length];
-    ctx.fillRect(100, yPos, Math.max(1, 580 * pct / 100), 12);
-
-    yPos += 36;
-  }
-
-  // 各角色收益
-  const charStats = {};
-  incomes.forEach(i => { const n = getCharName(i.characterId); charStats[n] = (charStats[n] || 0) + i.amount; });
-
-  if (Object.keys(charStats).length > 0) {
-    yPos += 20;
-    ctx.font = '28px "Ma Shan Zheng", cursive';
-    ctx.fillStyle = '#5B7F8A';
-    ctx.fillText('各角色收益', 80, yPos);
-    yPos += 40;
-
-    for (const [name, amount] of Object.entries(charStats)) {
-      ctx.font = '20px "Noto Serif SC", serif';
-      ctx.fillStyle = '#2C2C2C';
-      ctx.fillText(name, 100, yPos);
-      ctx.fillStyle = '#C8A45C';
-      ctx.textAlign = 'right';
-      ctx.fillText(amount.toLocaleString(), 680, yPos);
-      ctx.textAlign = 'left';
-      yPos += 36;
-    }
-  }
-
-  // 底部祥云
-  drawCloud(ctx, 80, 1100);
-  drawCloud(ctx, 680, 1100);
-
-  // 底部落款
-  ctx.font = '18px "Ma Shan Zheng", cursive';
-  ctx.fillStyle = '#B22222';
-  ctx.textAlign = 'center';
-  ctx.fillText('剑网三收益记录', 400, 1150);
-
-  // 提供下载
-  canvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `剑网三收益汇总_${dateStr}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('图片已保存');
-  });
-}
-
-function drawCloud(ctx, x, y) {
-  ctx.beginPath();
-  ctx.moveTo(x - 20, y + 15);
-  ctx.quadraticCurveTo(x - 25, y, x - 10, y - 5);
-  ctx.quadraticCurveTo(x - 5, y - 15, x + 10, y - 10);
-  ctx.quadraticCurveTo(x + 25, y - 15, x + 25, y);
-  ctx.quadraticCurveTo(x + 30, y + 10, x + 20, y + 15);
-  ctx.quadraticCurveTo(x + 10, y + 25, x, y + 20);
-  ctx.quadraticCurveTo(x - 15, y + 25, x - 20, y + 15);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(200,164,92,0.15)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(200,164,92,0.3)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-// ==================== 设置管理 ====================
-
-let settingsEditType = '';
-let settingsEditId = null;
-
-function openSettingsModal(type, editId) {
-  settingsEditType = type;
-  settingsEditId = editId || null;
-
-  const title = document.getElementById('settingsModalTitle');
-  const body = document.getElementById('settingsModalBody');
-
-  const accounts = loadData('jx3_accounts');
-  const servers = loadData('jx3_servers');
-
-  let html = '';
-  if (type === 'account') {
-    title.textContent = editId ? '编辑账号' : '新增账号';
-    const acc = editId ? accounts.find(a => a.id === editId) : null;
-    html = `
-      <div class="form-group">
-        <label class="form-label">账号名称</label>
-        <input type="text" class="form-input" id="editItemName" value="${acc ? acc.name : ''}" placeholder="输入账号名称">
-      </div>
-    `;
-  } else if (type === 'server') {
-    title.textContent = editId ? '编辑区服' : '新增区服';
-    const srv = editId ? servers.find(s => s.id === editId) : null;
-    html = `
-      <div class="form-group">
-        <label class="form-label">区服名称</label>
-        <input type="text" class="form-input" id="editItemName" value="${srv ? srv.name : ''}" placeholder="输入区服名称">
-      </div>
-      <div class="form-group">
-        <label class="form-label">关联账号</label>
-        <select class="form-select" id="editItemParent">
-          ${accounts.map(a => `<option value="${a.id}" ${srv && srv.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
-        </select>
-      </div>
-    `;
-  } else if (type === 'character') {
-    title.textContent = editId ? '编辑角色' : '新增角色';
-    const chars = loadData('jx3_characters');
-    const chr = editId ? chars.find(c => c.id === editId) : null;
-    html = `
-      <div class="form-group">
-        <label class="form-label">角色名称</label>
-        <input type="text" class="form-input" id="editItemName" value="${chr ? chr.name : ''}" placeholder="输入角色名称">
-      </div>
-      <div class="form-group">
-        <label class="form-label">所属区服</label>
-        <select class="form-select" id="editItemServer">
-          ${servers.map(s => `<option value="${s.id}" ${chr && chr.serverId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">关联账号</label>
-        <select class="form-select" id="editItemParent">
-          ${accounts.map(a => `<option value="${a.id}" ${chr && chr.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
-        </select>
-      </div>
-    `;
-  } else if (type === 'incomeType') {
-    title.textContent = editId ? '编辑类型' : '新增类型';
-    const types = loadData('jx3_income_types');
-    const tp = editId ? types.find(t => t.id === editId) : null;
-    html = `
-      <div class="form-group">
-        <label class="form-label">类型名称</label>
-        <input type="text" class="form-input" id="editItemName" value="${tp ? tp.name : ''}" placeholder="输入类型名称">
-      </div>
-    `;
-  }
-
-  body.innerHTML = html;
-  openModal('settingsModal');
-}
-
-function saveSettingsItem() {
-  const name = document.getElementById('editItemName').value.trim();
-  if (!name) { showToast('名称不能为空'); return; }
-
-  if (settingsEditType === 'account') {
-    const list = loadData('jx3_accounts');
-    if (settingsEditId) {
-      const item = list.find(a => a.id === settingsEditId);
-      if (item) item.name = name;
-    } else {
-      list.push({ id: uid(), name: name });
-    }
-    saveData('jx3_accounts', list);
-  } else if (settingsEditType === 'server') {
-    const parentId = document.getElementById('editItemParent').value;
-    const list = loadData('jx3_servers');
-    if (settingsEditId) {
-      const item = list.find(s => s.id === settingsEditId);
-      if (item) { item.name = name; item.accountId = parentId; }
-    } else {
-      list.push({ id: uid(), name: name, accountId: parentId });
-    }
-    saveData('jx3_servers', list);
-  } else if (settingsEditType === 'character') {
-    const serverId = document.getElementById('editItemServer').value;
-    const parentId = document.getElementById('editItemParent').value;
-    const list = loadData('jx3_characters');
-    if (settingsEditId) {
-      const item = list.find(c => c.id === settingsEditId);
-      if (item) { item.name = name; item.serverId = serverId; item.accountId = parentId; }
-    } else {
-      list.push({ id: uid(), name: name, serverId: serverId, accountId: parentId });
-    }
-    saveData('jx3_characters', list);
-  } else if (settingsEditType === 'incomeType') {
-    const list = loadData('jx3_income_types');
-    if (settingsEditId) {
-      const item = list.find(t => t.id === settingsEditId);
-      if (item) item.name = name;
-    } else {
-      list.push({ id: uid(), name: name, isDefault: false });
-    }
-    saveData('jx3_income_types', list);
-  }
-
-  closeModal('settingsModal');
-  showToast('保存成功');
-  renderSettings();
-}
-
-function deleteSettingsItem(type, id) {
-  const typeNames = { account: '账号', server: '区服', character: '角色', incomeType: '收益类型' };
-  showConfirm(`确定删除此${typeNames[type]}？`, () => {
-    const key = type === 'account' ? 'jx3_accounts' : type === 'server' ? 'jx3_servers' : type === 'character' ? 'jx3_characters' : 'jx3_income_types';
-    let list = loadData(key);
-    list = list.filter(item => item.id !== id);
-    saveData(key, list);
-    showToast('已删除');
-    renderSettings();
-  });
-}
-
-function renderSettings() {
-  const accounts = loadData('jx3_accounts');
-  const servers = loadData('jx3_servers');
-  const chars = loadData('jx3_characters');
-  const types = loadData('jx3_income_types');
-
-  // 账号列表
-  document.getElementById('settingsAccounts').innerHTML = accounts.length === 0
-    ? '<div style="font-size:13px;color:var(--teal-secondary);padding:8px;">暂无账号</div>'
-    : accounts.map(a => `
-      <div class="settings-item">
-        <div class="settings-item-info">
-          <div class="settings-item-name">${a.name}</div>
+        <!-- 角色选择 -->
+        <div class="form-group">
+          <label class="form-label">角色</label>
+          <select id="encounter-char" class="form-select"></select>
         </div>
-        <div class="settings-item-actions">
-          <button class="btn btn-outline" style="padding:3px 8px;font-size:12px;" onclick="openSettingsModal('account','${a.id}')">改</button>
-          <button class="btn btn-danger" style="padding:3px 8px;font-size:12px;" onclick="deleteSettingsItem('account','${a.id}')">删</button>
+        <!-- 触发日期 -->
+        <div class="form-group">
+          <label class="form-label">触发日期</label>
+          <input type="date" id="encounter-date" class="form-input">
+        </div>
+        <!-- 备注 -->
+        <div class="form-group">
+          <label class="form-label">备注</label>
+          <textarea id="encounter-note" class="form-textarea" rows="2"></textarea>
         </div>
       </div>
-    `).join('');
-
-  // 区服列表
-  document.getElementById('settingsServers').innerHTML = servers.length === 0
-    ? '<div style="font-size:13px;color:var(--teal-secondary);padding:8px;">暂无区服</div>'
-    : servers.map(s => `
-      <div class="settings-item">
-        <div class="settings-item-info">
-          <div class="settings-item-name">${s.name}</div>
-          <div class="settings-item-detail">关联账号: ${getAccountName(s.accountId)}</div>
-        </div>
-        <div class="settings-item-actions">
-          <button class="btn btn-outline" style="padding:3px 8px;font-size:12px;" onclick="openSettingsModal('server','${s.id}')">改</button>
-          <button class="btn btn-danger" style="padding:3px 8px;font-size:12px;" onclick="deleteSettingsItem('server','${s.id}')">删</button>
-        </div>
-      </div>
-    `).join('');
-
-  // 角色列表
-  document.getElementById('settingsCharacters').innerHTML = chars.length === 0
-    ? '<div style="font-size:13px;color:var(--teal-secondary);padding:8px;">暂无角色</div>'
-    : chars.map(c => `
-      <div class="settings-item">
-        <div class="settings-item-info">
-          <div class="settings-item-name">${c.name}</div>
-          <div class="settings-item-detail">${getServerName(c.serverId)} · ${getAccountName(c.accountId)}</div>
-        </div>
-        <div class="settings-item-actions">
-          <button class="btn btn-outline" style="padding:3px 8px;font-size:12px;" onclick="openSettingsModal('character','${c.id}')">改</button>
-          <button class="btn btn-danger" style="padding:3px 8px;font-size:12px;" onclick="deleteSettingsItem('character','${c.id}')">删</button>
-        </div>
-      </div>
-    `).join('');
-
-  // 收益类型列表
-  document.getElementById('settingsIncomeTypes').innerHTML = types.map(t => `
-    <div class="settings-item">
-      <div class="settings-item-info">
-        <div class="settings-item-name">${t.name}</div>
-        <div class="settings-item-detail">${t.isDefault ? '预设' : '自定义'}</div>
-      </div>
-      <div class="settings-item-actions">
-        ${!t.isDefault ? `<button class="btn btn-outline" style="padding:3px 8px;font-size:12px;" onclick="openSettingsModal('incomeType','${t.id}')">改</button>
-        <button class="btn btn-danger" style="padding:3px 8px;font-size:12px;" onclick="deleteSettingsItem('incomeType','${t.id}')">删</button>` : ''}
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('encounter-modal')">取消</button>
+        <button class="btn btn-primary" onclick="saveEncounter()">保存</button>
       </div>
     </div>
-  `).join('');
-}
+  </div>
 
-// ==================== 数据导入导出 ====================
+  <!-- 任务弹窗 -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <div class="modal-title">新增任务</div>
+      <div class="modal-body">
+        <!-- 任务名称 -->
+        <div class="form-group">
+          <label class="form-label">任务名称</label>
+          <input type="text" id="task-name" class="form-input" placeholder="如：大战！英雄秘境">
+        </div>
+        <!-- 角色选择 -->
+        <div class="form-group">
+          <label class="form-label">角色</label>
+          <select id="task-char" class="form-select"></select>
+        </div>
+        <!-- 任务类型切换 -->
+        <div class="form-group">
+          <label class="form-label">任务类型</label>
+          <div class="btn-toggle-group">
+            <button class="btn-toggle active" id="task-type-daily-btn" onclick="setTaskType('daily')">每日</button>
+            <button class="btn-toggle" id="task-type-weekly-btn" onclick="setTaskType('weekly')">每周</button>
+          </div>
+        </div>
+        <!-- 模板快捷添加 -->
+        <div class="form-group">
+          <label class="form-label">从模板添加</label>
+          <div class="quick-panel">
+            <button class="quick-btn" onclick="addTaskFromTemplate('大战！英雄秘境')">大战！英雄秘境</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('茶馆')">茶馆</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('矿车')">矿车</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('门派日常')">门派日常</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('战场')">战场</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('浪客行')">浪客行</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('驰援')">驰援</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('世界BOSS')">世界BOSS</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('名剑大会')">名剑大会</button>
+            <button class="quick-btn" onclick="addTaskFromTemplate('帮会大跑商')">帮会大跑商</button>
+          </div>
+        </div>
+        <!-- 批量操作 -->
+        <div class="form-group">
+          <label class="form-label">批量操作</label>
+          <button class="btn btn-outline" onclick="batchCheckAll()">一键给所有角色打卡</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('task-modal')">取消</button>
+        <button class="btn btn-primary" onclick="saveTask()">保存</button>
+      </div>
+    </div>
+  </div>
 
-function exportData() {
-  const data = {};
-  STORAGE_KEYS.forEach(key => { data[key] = loadData(key); });
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `剑网三收益数据_${today()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('数据已导出');
-}
+  <!-- 避雷弹窗 -->
+  <div class="modal-overlay" id="blacklist-modal">
+    <div class="modal">
+      <div class="modal-title">添加避雷记录</div>
+      <div class="modal-body">
+        <!-- 类型 -->
+        <div class="form-group">
+          <label class="form-label">类型</label>
+          <select id="blacklist-type" class="form-select">
+            <option value="team">团牌</option>
+            <option value="id">游戏ID</option>
+            <option value="uid">UID</option>
+          </select>
+        </div>
+        <!-- 名称/编号 -->
+        <div class="form-group">
+          <label class="form-label">名称/编号</label>
+          <input type="text" id="blacklist-value" class="form-input" placeholder="输入团牌、ID或UID">
+        </div>
+        <!-- 原因 -->
+        <div class="form-group">
+          <label class="form-label">原因</label>
+          <input type="text" id="blacklist-reason" class="form-input" placeholder="如：黑装备、挂机等">
+        </div>
+        <!-- 详细备注 -->
+        <div class="form-group">
+          <label class="form-label">详细备注</label>
+          <textarea id="blacklist-note" class="form-textarea" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('blacklist-modal')">取消</button>
+        <button class="btn btn-primary" onclick="saveBlacklist()">保存</button>
+      </div>
+    </div>
+  </div>
 
-function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  <!-- 设置弹窗 -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-title" id="settings-modal-title">新增</div>
+      <div class="modal-body" id="settings-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('settings-modal')">取消</button>
+        <button class="btn btn-primary" onclick="saveSettingsItem()">保存</button>
+      </div>
+    </div>
+  </div>
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
+  <!-- 通用确认弹窗 -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal modal-small">
+      <div class="modal-title" id="confirm-title">确认</div>
+      <div class="modal-body"><p id="confirm-message"></p></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('confirm-modal')">取消</button>
+        <button class="btn btn-primary" id="confirm-ok-btn">确定</button>
+      </div>
+    </div>
+  </div>
 
-      showConfirm('导入数据将覆盖当前数据，确定继续？', () => {
-        STORAGE_KEYS.forEach(key => {
-          if (data[key]) saveData(key, data[key]);
-        });
-        showToast('数据已导入');
-        // 重新渲染当前页面
-        if (currentTab === 'home') renderHome();
-        else if (currentTab === 'settings') renderSettings();
-        else if (currentTab === 'income') { refreshFilters(); renderIncomeList(); }
-      });
-    } catch {
-      showToast('文件格式错误');
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-}
+  <!-- Toast 提示容器 -->
+  <div class="toast-container" id="toast-container"></div>
 
-function confirmClearAll() {
-  showConfirm('确定清空全部数据？此操作不可恢复！', () => {
-    STORAGE_KEYS.forEach(key => { localStorage.removeItem(key); });
-    initData();
-    showToast('数据已清空');
-    renderSettings();
-  });
-}
+  <!-- ============ 移动端底部导航（桌面隐藏） ============ -->
+  <nav class="mobile-nav">
+    <div class="mobile-nav-item active" data-page="home" onclick="switchPage('home')">
+      <span class="mobile-nav-icon">卷</span>
+      <span class="mobile-nav-label">总览</span>
+    </div>
+    <div class="mobile-nav-item" data-page="records" onclick="switchPage('records')">
+      <span class="mobile-nav-icon">金</span>
+      <span class="mobile-nav-label">收支</span>
+    </div>
+    <div class="mobile-nav-item" data-page="tasks" onclick="switchPage('tasks')">
+      <span class="mobile-nav-icon">勤</span>
+      <span class="mobile-nav-label">任务</span>
+    </div>
+    <div class="mobile-nav-item" data-page="summary" onclick="switchPage('summary')">
+      <span class="mobile-nav-icon">总</span>
+      <span class="mobile-nav-label">汇总</span>
+    </div>
+    <div class="mobile-nav-item" data-page="settings" onclick="switchPage('settings')">
+      <span class="mobile-nav-icon">设</span>
+      <span class="mobile-nav-label">更多</span>
+    </div>
+  </nav>
 
-// ==================== SortableJS初始化 ====================
 
-function initSortable(containerId) {
-  const el = document.getElementById(containerId);
-  if (el && typeof Sortable !== 'undefined') {
-    new Sortable(el, {
-      animation: 200,
-      ghostClass: 'sweep-out',
-      handle: '.list-item',
-      onEnd: function() {
-        // 简单排序：根据DOM顺序重新排序
-        const items = el.querySelectorAll('.list-item');
-        const incomes = loadData('jx3_incomes');
-        const newOrder = [];
-        items.forEach(item => newOrder.push(item.dataset.id));
-        // 不实际改变存储顺序，保持时间顺序
-      }
+  <!-- ============================================================ -->
+  <!-- ============             脚本引用             ============ -->
+  <!-- ============================================================ -->
+
+  <!-- SortableJS 拖拽排序库 -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <!-- 业务逻辑脚本（按依赖顺序加载） -->
+  <script src="js/app.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/chart.js"></script>
+
+  <!-- Service Worker 注册（PWA 离线支持） -->
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(e => console.log('SW registration failed'));
     });
   }
-}
-
-// ==================== 初始化 ====================
-
-function init() {
-  initData();
-  renderHome();
-  document.getElementById('summaryDate').value = today();
-}
-
-// 点击弹窗遮罩关闭
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', function(e) {
-    if (e.target === this) {
-      this.classList.remove('active');
-    }
-  });
-});
-
-// 启动
-init();
-</script>
+  </script>
 </body>
 </html>
