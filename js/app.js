@@ -6,9 +6,9 @@
 
 /* ============================ 全局变量与常量 ============================ */
 
-// localStorage键名
+// localStorage键名（已合并账号/区服/角色为jx3_characters）
 const STORAGE_KEYS = [
-  'jx3_accounts', 'jx3_servers', 'jx3_characters', 'jx3_income_types',
+  'jx3_characters', 'jx3_income_types',
   'jx3_records', 'jx3_encounters', 'jx3_tasks', 'jx3_blacklist',
   'jx3_achievements', 'jx3_settings'
 ];
@@ -196,38 +196,105 @@ function initData() {
 }
 
 /**
- * 数据迁移 - 将旧的 jx3_incomes 键迁移到 jx3_records
- * 为每条记录添加 type:'income' 字段
+ * 数据迁移
+ * 1. 将旧的 jx3_incomes 键迁移到 jx3_records
+ * 2. 将旧的 jx3_accounts / jx3_servers / jx3_characters（旧格式含accountId/serverId字段）合并为新jx3_characters格式
  */
 function migrateData() {
+  // ---- 旧收益记录迁移 jx3_incomes -> jx3_records ----
   var oldRaw = localStorage.getItem('jx3_incomes');
-  if (oldRaw === null) return; // 无旧数据
-  try {
-    var oldData = JSON.parse(oldRaw);
-    if (!Array.isArray(oldData) || oldData.length === 0) {
-      localStorage.removeItem('jx3_incomes');
-      return;
+  if (oldRaw !== null) {
+    try {
+      var oldData = JSON.parse(oldRaw);
+      if (!Array.isArray(oldData) || oldData.length === 0) {
+        localStorage.removeItem('jx3_incomes');
+      } else {
+        var records = loadData('jx3_records');
+        oldData.forEach(function(item) {
+          // 避免重复迁移
+          if (item.type) return; // 已有type字段说明可能已迁移过
+          item.type = 'income';
+          if (!item.id) item.id = uid();
+          // 检查是否已存在
+          var exists = records.find(function(r) { return r.id === item.id; });
+          if (!exists) records.push(item);
+        });
+        saveData('jx3_records', records);
+        localStorage.removeItem('jx3_incomes');
+        console.log('数据迁移完成：jx3_incomes -> jx3_records');
+      }
+    } catch (e) {
+      console.error('收益记录迁移失败:', e);
     }
-    var records = loadData('jx3_records');
-    oldData.forEach(function(item) {
-      // 避免重复迁移
-      if (item.type) return; // 已有type字段说明可能已迁移过
-      item.type = 'income';
-      if (!item.id) item.id = uid();
-      // 检查是否已存在
-      var exists = records.find(function(r) { return r.id === item.id; });
-      if (!exists) records.push(item);
-    });
-    saveData('jx3_records', records);
-    localStorage.removeItem('jx3_incomes');
-    console.log('数据迁移完成：jx3_incomes -> jx3_records');
-  } catch (e) {
-    console.error('数据迁移失败:', e);
+  }
+
+  // ---- 旧三表合并迁移 jx3_accounts/jx3_servers/jx3_characters -> 新jx3_characters ----
+  var oldAccountsRaw = localStorage.getItem('jx3_accounts');
+  var oldServersRaw = localStorage.getItem('jx3_servers');
+  var oldCharsRaw = localStorage.getItem('jx3_characters');
+  var hasOldAccounts = oldAccountsRaw !== null;
+  var hasOldServers = oldServersRaw !== null;
+
+  // 检查旧characters是否含有旧格式字段（accountId/serverId/name）
+  var needMigrate = false;
+  if (oldCharsRaw !== null) {
+    try {
+      var oldChars = JSON.parse(oldCharsRaw);
+      if (Array.isArray(oldChars) && oldChars.length > 0) {
+        // 旧格式有 serverId 或 accountId 或 name（而非characterId）字段
+        needMigrate = oldChars.some(function(c) {
+          return c.accountId || c.serverId || (c.name && !c.characterId);
+        });
+      }
+    } catch (e) {
+      console.error('旧角色数据解析失败:', e);
+    }
+  }
+
+  if (needMigrate || hasOldAccounts || hasOldServers) {
+    try {
+      var oldAccounts = hasOldAccounts ? JSON.parse(oldAccountsRaw) : [];
+      var oldServers = hasOldServers ? JSON.parse(oldServersRaw) : [];
+      var oldCharacters = oldCharsRaw ? JSON.parse(oldCharsRaw) : [];
+
+      var newCharacters = [];
+      oldCharacters.forEach(function(c) {
+        // 通过serverId查旧servers表获取server名和stype
+        var serverName = '';
+        if (c.serverId) {
+          var svr = oldServers.find(function(s) { return s.id === c.serverId; });
+          serverName = svr ? svr.name : '';
+        }
+        // 通过accountId查旧accounts表获取account名
+        var accountName = '';
+        if (c.accountId) {
+          var acct = oldAccounts.find(function(a) { return a.id === c.accountId; });
+          accountName = acct ? acct.name : '';
+        }
+        newCharacters.push({
+          id: c.id || uid(),
+          account: accountName,
+          server: serverName,
+          characterId: c.name || c.characterId || '',
+          sect: c.sect || '',
+          isMain: c.isMain || false
+        });
+      });
+
+      saveData('jx3_characters', newCharacters);
+
+      // 删除旧的jx3_accounts和jx3_servers键
+      localStorage.removeItem('jx3_accounts');
+      localStorage.removeItem('jx3_servers');
+      console.log('数据迁移完成：jx3_accounts/jx3_servers/jx3_characters(旧) -> jx3_characters(新)');
+    } catch (e) {
+      console.error('三表合并迁移失败:', e);
+    }
   }
 }
 
 /**
- * 获取角色名称
+ * 获取角色名称（返回characterId字段）
  * @param {string} id - 角色ID
  * @returns {string}
  */
@@ -235,31 +302,25 @@ function getCharName(id) {
   if (!id) return '未知角色';
   var chars = loadData('jx3_characters');
   var c = chars.find(function(ch) { return ch.id === id; });
-  return c ? c.name : '未知角色';
+  return c ? (c.characterId || '未知角色') : '未知角色';
 }
 
 /**
- * 获取服务器名称
- * @param {string} id - 服务器ID
+ * 获取服务器名称（新数据模型中server直接是名字字符串，直接返回传入参数）
+ * @param {string} id - 服务器名（已不再是ID引用）
  * @returns {string}
  */
 function getServerName(id) {
-  if (!id) return '未知区服';
-  var servers = loadData('jx3_servers');
-  var s = servers.find(function(sv) { return sv.id === id; });
-  return s ? s.name : '未知区服';
+  return id || '未知区服';
 }
 
 /**
- * 获取账号名称
- * @param {string} id - 账号ID
+ * 获取账号名称（新数据模型中account直接是名字字符串，直接返回传入参数）
+ * @param {string} id - 账号名（已不再是ID引用）
  * @returns {string}
  */
 function getAccountName(id) {
-  if (!id) return '未知账号';
-  var accounts = loadData('jx3_accounts');
-  var a = accounts.find(function(ac) { return ac.id === id; });
-  return a ? a.name : '未知账号';
+  return id || '未知账号';
 }
 
 /**
@@ -284,6 +345,30 @@ function getCharSect(id) {
   var chars = loadData('jx3_characters');
   var c = chars.find(function(ch) { return ch.id === id; });
   return c ? (c.sect || '') : '';
+}
+
+/**
+ * 获取角色所在区服（新数据模型中直接从角色记录读取server字段）
+ * @param {string} id - 角色ID
+ * @returns {string}
+ */
+function getCharServer(id) {
+  if (!id) return '';
+  var chars = loadData('jx3_characters');
+  var c = chars.find(function(ch) { return ch.id === id; });
+  return c ? (c.server || '') : '';
+}
+
+/**
+ * 获取角色所属账号（新数据模型中直接从角色记录读取account字段）
+ * @param {string} id - 角色ID
+ * @returns {string}
+ */
+function getCharAccount(id) {
+  if (!id) return '';
+  var chars = loadData('jx3_characters');
+  var c = chars.find(function(ch) { return ch.id === id; });
+  return c ? (c.account || '') : '';
 }
 
 /* ============================ 二、通用UI函数 ============================ */
@@ -486,7 +571,7 @@ function renderHome() {
   }
 
   // 日期展示
-  var dateEl = document.getElementById('home-date');
+  var dateEl = document.getElementById('top-date');
   if (dateEl) {
     var lunar = getLunarDate();
     dateEl.textContent = today() + ' ' + getWeekday() + (lunar ? ' ' + lunar : '');
@@ -556,22 +641,34 @@ function renderHome() {
 
   // 填充筛选器选项
   fillFilterOptions();
+
+  // 更新底部栏净收益
+  var bottomEl = document.getElementById('bottom-net-income');
+  if (bottomEl) {
+    bottomEl.textContent = formatGold(netIncome);
+    bottomEl.style.color = netIncome >= 0 ? '#E4C895' : '#D4584A';
+  }
 }
 
 /**
- * 填充筛选器下拉框选项
+ * 填充筛选器下拉框选项（新数据模型：只填充角色下拉）
  */
 function fillFilterOptions() {
-  var accounts = loadData('jx3_accounts');
-  var servers = loadData('jx3_servers');
   var characters = loadData('jx3_characters');
-  fillSelect('filter-account', accounts, '全部账号');
-  fillSelect('filter-server', servers, '全部区服');
-  fillSelect('filter-char', characters, '全部角色');
+  var sel = document.getElementById('record-filter-char');
+  if (!sel) return;
+  var currentVal = sel.value;
+  var html = '<option value="">全部角色</option>';
+  characters.forEach(function(c) {
+    var label = escapeHtml(c.characterId) + ' (' + escapeHtml(c.account) + '·' + escapeHtml(c.server) + ')';
+    html += '<option value="' + c.id + '">' + label + '</option>';
+  });
+  sel.innerHTML = html;
+  sel.value = currentVal;
 }
 
 /**
- * 填充select下拉框
+ * 填充select下拉框（通用，保留兼容）
  * @param {string} selectId - select元素ID
  * @param {Array} items - 数据数组
  * @param {string} allText - "全部"选项文本
@@ -598,30 +695,22 @@ function renderRecordList() {
   // 按timestamp降序
   records.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
 
-  // 首次渲染时填充筛选下拉框
+  // 首次渲染时填充角色筛选下拉框
   if (!recordFilterInitialized) {
-    fillSelect('filter-account', loadData('jx3_accounts'), '全部账号');
-    fillSelect('filter-server', loadData('jx3_servers'), '全部区服');
-    fillSelect('filter-char', loadData('jx3_characters'), '全部角色');
+    fillFilterOptions();
     recordFilterInitialized = true;
   }
 
-  // 应用筛选
-  var filterAccount = document.getElementById('filter-account');
-  var filterServer = document.getElementById('filter-server');
-  var filterChar = document.getElementById('filter-char');
-  var filterDateStart = document.getElementById('filter-date-start');
-  var filterDateEnd = document.getElementById('filter-date-end');
+  // 应用筛选（简化为角色筛选+日期范围）
+  var filterChar = document.getElementById('record-filter-char');
+  var filterDateStart = document.getElementById('record-filter-date-from');
+  var filterDateEnd = document.getElementById('record-filter-date-to');
 
-  var fa = filterAccount ? filterAccount.value : '';
-  var fs = filterServer ? filterServer.value : '';
   var fc = filterChar ? filterChar.value : '';
   var fds = filterDateStart ? filterDateStart.value : '';
   var fde = filterDateEnd ? filterDateEnd.value : '';
 
   var filtered = records.filter(function(r) {
-    if (fa && r.accountId !== fa) return false;
-    if (fs && r.serverId !== fs) return false;
     if (fc && r.characterId !== fc) return false;
     if (fds && r.date < fds) return false;
     if (fde && r.date > fde) return false;
@@ -639,6 +728,7 @@ function renderRecordList() {
   listEl.innerHTML = filtered.map(function(r) {
     var isIncome = r.type !== 'expense';
     var charName = getCharName(r.characterId);
+    var charServer = getCharServer(r.characterId);
     var typeName = getTypeName(r.category);
     var amount = (isIncome ? '+' : '-') + formatGold(Number(r.amount) || 0);
     var cls = isIncome ? 'income' : 'expense';
@@ -648,7 +738,7 @@ function renderRecordList() {
     return '<div class="list-item ' + cls + '" data-id="' + r.id + '">' +
       '<div class="list-item-content">' +
         '<div class="item-top">' +
-          '<span class="item-char">' + escapeHtml(charName) + '</span>' +
+          '<span class="item-char">' + escapeHtml(charName) + (charServer ? ' · ' + escapeHtml(charServer) : '') + '</span>' +
           '<span class="item-tag type-' + cls + '">' + escapeHtml(typeName) + '</span>' +
         '</div>' +
         '<div class="item-mid">' +
@@ -701,7 +791,8 @@ function openRecordModal() {
   if (charSel) {
     var charHtml = '<option value="">请选择角色</option>';
     characters.forEach(function(c) {
-      charHtml += '<option value="' + c.id + '">' + escapeHtml(c.name) + (c.sect ? ' (' + c.sect + ')' : '') + '</option>';
+      var label = escapeHtml(c.characterId) + ' (' + escapeHtml(c.account) + '·' + escapeHtml(c.server) + ')';
+      charHtml += '<option value="' + c.id + '">' + label + '</option>';
     });
     charSel.innerHTML = charHtml;
   }
@@ -856,17 +947,10 @@ function saveRecord() {
     return;
   }
 
-  // 获取角色关联的serverId和accountId
-  var characters = loadData('jx3_characters');
-  var char = characters.find(function(c) { return c.id === characterId; });
-  var serverId = char ? char.serverId : '';
-  var accountId = char ? char.accountId : '';
-
+  // 新数据模型中server/account直接存储在角色记录中，记录只需保存characterId
   var record = {
     id: uid(),
     characterId: characterId,
-    serverId: serverId,
-    accountId: accountId,
     type: recordType,
     category: category,
     amount: amount,
@@ -929,11 +1013,16 @@ function renderEncounterList() {
   var encounters = loadData('jx3_encounters');
   encounters.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
 
-  // 填充角色筛选
+  // 填充角色筛选（新格式：characterId (account·server)）
   var filterChar = document.getElementById('encounter-filter-char');
   if (filterChar && filterChar.children.length <= 1) {
     var characters = loadData('jx3_characters');
-    fillSelect('encounter-filter-char', characters, '全部角色');
+    var charHtml = '<option value="">全部角色</option>';
+    characters.forEach(function(c) {
+      var label = escapeHtml(c.characterId) + ' (' + escapeHtml(c.account) + '·' + escapeHtml(c.server) + ')';
+      charHtml += '<option value="' + c.id + '">' + label + '</option>';
+    });
+    filterChar.innerHTML = charHtml;
   }
 
   // 筛选
@@ -1037,7 +1126,8 @@ function openEncounterModal() {
   if (charSel) {
     var charHtml = '<option value="">请选择角色</option>';
     characters.forEach(function(c) {
-      charHtml += '<option value="' + c.id + '">' + escapeHtml(c.name) + (c.sect ? ' (' + c.sect + ')' : '') + '</option>';
+      var label = escapeHtml(c.characterId) + ' (' + escapeHtml(c.account) + '·' + escapeHtml(c.server) + ')';
+      charHtml += '<option value="' + c.id + '">' + label + '</option>';
     });
     charSel.innerHTML = charHtml;
   }
@@ -1096,19 +1186,12 @@ function saveEncounter() {
     rarity = 'normal'; // 自定义默认普通
   }
 
-  // 获取角色关联信息
-  var characters = loadData('jx3_characters');
-  var char = characters.find(function(c) { return c.id === characterId; });
-  var serverId = char ? char.serverId : '';
-  var accountId = char ? char.accountId : '';
-
+  // 新数据模型中只需保存characterId，server/account在角色记录中
   var encounter = {
     id: uid(),
     name: name,
     rarity: rarity,
     characterId: characterId,
-    serverId: serverId,
-    accountId: accountId,
     note: note,
     date: date,
     timestamp: Date.now()
@@ -1281,7 +1364,8 @@ function openTaskModal() {
   if (charSel) {
     var html = '<option value="">通用</option>';
     characters.forEach(function(c) {
-      html += '<option value="' + c.id + '">' + escapeHtml(c.name) + (c.sect ? ' (' + c.sect + ')' : '') + '</option>';
+      var label = escapeHtml(c.characterId) + ' (' + escapeHtml(c.account) + '·' + escapeHtml(c.server) + ')';
+      html += '<option value="' + c.id + '">' + label + '</option>';
     });
     charSel.innerHTML = html;
   }
@@ -1501,9 +1585,24 @@ function renderSummary() {
     endDate = dateStr;
   }
 
+  // 填充角色筛选下拉（新格式：characterId (account·server)）
+  var summaryCharSel = document.getElementById('summary-char');
+  if (summaryCharSel && summaryCharSel.children.length <= 1) {
+    var characters = loadData('jx3_characters');
+    var charHtml = '<option value="">全部角色</option>';
+    characters.forEach(function(c) {
+      var label = escapeHtml(c.characterId) + ' (' + escapeHtml(c.account) + '·' + escapeHtml(c.server) + ')';
+      charHtml += '<option value="' + c.id + '">' + label + '</option>';
+    });
+    summaryCharSel.innerHTML = charHtml;
+  }
+  var summaryCharId = summaryCharSel ? summaryCharSel.value : '';
+
   var records = loadData('jx3_records');
   var filtered = records.filter(function(r) {
-    return r.date >= startDate && r.date <= endDate;
+    if (r.date < startDate || r.date > endDate) return false;
+    if (summaryCharId && r.characterId !== summaryCharId) return false;
+    return true;
   });
 
   // 计算总收入、总支出、净收益
@@ -1783,7 +1882,13 @@ function generateSummaryImage() {
   }
 
   var records = loadData('jx3_records');
-  var filtered = records.filter(function(r) { return r.date >= startDate && r.date <= endDate; });
+  var summaryCharSel = document.getElementById('summary-char');
+  var summaryCharId = summaryCharSel ? summaryCharSel.value : '';
+  var filtered = records.filter(function(r) {
+    if (r.date < startDate || r.date > endDate) return false;
+    if (summaryCharId && r.characterId !== summaryCharId) return false;
+    return true;
+  });
   var incomeTotal = 0, expenseTotal = 0;
   filtered.forEach(function(r) {
     if (r.type === 'expense') expenseTotal += Number(r.amount) || 0;
@@ -1929,74 +2034,23 @@ function drawCloud(ctx, x, y) {
 /* ============================ 八、设置模块 ============================ */
 
 /**
- * 渲染设置页
+ * 渲染设置页（新数据模型：只有角色管理、收益来源类型、数据管理三个区块）
  */
 function renderSettings() {
-  var accounts = loadData('jx3_accounts');
-  var servers = loadData('jx3_servers');
   var characters = loadData('jx3_characters');
   var incomeTypes = loadData('jx3_income_types');
 
-  // 账号列表
-  var acctEl = document.getElementById('settings-account-list');
-  if (acctEl) {
-    if (accounts.length === 0) {
-      acctEl.innerHTML = '<div class="empty-tip">暂无账号</div>';
-    } else {
-      acctEl.innerHTML = accounts.map(function(a) {
-        var charCount = characters.filter(function(c) { return c.accountId === a.id; }).length;
-        return '<div class="settings-item">' +
-          '<div class="settings-item-info">' +
-            '<span class="settings-item-name">' + escapeHtml(a.name) + '</span>' +
-            '<span class="settings-item-desc">角色 ' + charCount + ' 个</span>' +
-          '</div>' +
-          '<div class="settings-item-actions">' +
-            '<button class="btn-icon" onclick="openSettingsModal(\'account\',\'' + a.id + '\')">编辑</button>' +
-            '<button class="btn-icon danger" onclick="deleteSettingsItem(\'account\',\'' + a.id + '\')">删除</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
-  }
-
-  // 区服列表
-  var svrEl = document.getElementById('settings-server-list');
-  if (svrEl) {
-    if (servers.length === 0) {
-      svrEl.innerHTML = '<div class="empty-tip">暂无区服</div>';
-    } else {
-      svrEl.innerHTML = servers.map(function(s) {
-        var typeName = s.stype === 'dual' ? '双线' : '电信';
-        var acctName = s.accountId ? getAccountName(s.accountId) : '无关联';
-        var charCount = characters.filter(function(c) { return c.serverId === s.id; }).length;
-        return '<div class="settings-item">' +
-          '<div class="settings-item-info">' +
-            '<span class="settings-item-name">' + escapeHtml(s.name) + '</span>' +
-            '<span class="settings-item-desc">' + typeName + ' · ' + escapeHtml(acctName) + ' · 角色 ' + charCount + ' 个</span>' +
-          '</div>' +
-          '<div class="settings-item-actions">' +
-            '<button class="btn-icon" onclick="openSettingsModal(\'server\',\'' + s.id + '\')">编辑</button>' +
-            '<button class="btn-icon danger" onclick="deleteSettingsItem(\'server\',\'' + s.id + '\')">删除</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
-  }
-
-  // 角色列表
+  // 角色列表 - 使用 id="settings-character-list"
   var charEl = document.getElementById('settings-character-list');
   if (charEl) {
     if (characters.length === 0) {
-      charEl.innerHTML = '<div class="empty-tip">暂无角色</div>';
+      charEl.innerHTML = '<div class="empty-tip">暂无角色，点击下方添加</div>';
     } else {
       charEl.innerHTML = characters.map(function(c) {
-        var sect = c.sect || '未设置';
-        var svrName = c.serverId ? getServerName(c.serverId) : '未设置';
-        var acctName = c.accountId ? getAccountName(c.accountId) : '无关联';
         return '<div class="settings-item">' +
           '<div class="settings-item-info">' +
-            '<span class="settings-item-name">' + escapeHtml(c.name) + (c.isMain ? ' <span class="main-tag">主</span>' : '') + '</span>' +
-            '<span class="settings-item-desc">' + escapeHtml(sect) + ' · ' + escapeHtml(svrName) + ' · ' + escapeHtml(acctName) + '</span>' +
+            '<span class="settings-item-name">' + escapeHtml(c.characterId) + (c.isMain ? ' <span class="main-tag">主</span>' : '') + '</span>' +
+            '<span class="settings-item-desc">' + escapeHtml(c.account) + ' · ' + escapeHtml(c.server) + ' · ' + escapeHtml(c.sect || '未设置门派') + '</span>' +
           '</div>' +
           '<div class="settings-item-actions">' +
             '<button class="btn-icon" onclick="openSettingsModal(\'character\',\'' + c.id + '\')">编辑</button>' +
@@ -2007,38 +2061,34 @@ function renderSettings() {
     }
   }
 
-  // 收益类型列表
+  // 收益类型列表 - 使用 id="settings-incometype-list"
   var typeEl = document.getElementById('settings-incometype-list');
   if (typeEl) {
-    if (incomeTypes.length === 0) {
-      typeEl.innerHTML = '<div class="empty-tip">暂无类型</div>';
-    } else {
-      typeEl.innerHTML = incomeTypes.map(function(t) {
-        return '<div class="settings-item">' +
-          '<div class="settings-item-info">' +
-            '<span class="settings-item-name">' + escapeHtml(t.name) + '</span>' +
-          '</div>' +
-          '<div class="settings-item-actions">' +
-            '<button class="btn-icon" onclick="openSettingsModal(\'incomeType\',\'' + t.id + '\')">编辑</button>' +
-            '<button class="btn-icon danger" onclick="deleteSettingsItem(\'incomeType\',\'' + t.id + '\')">删除</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
+    typeEl.innerHTML = incomeTypes.map(function(t) {
+      return '<div class="settings-item">' +
+        '<div class="settings-item-info">' +
+          '<span class="settings-item-name">' + escapeHtml(t.name) + '</span>' +
+        '</div>' +
+        '<div class="settings-item-actions">' +
+          '<button class="btn-icon" onclick="openSettingsModal(\'incomeType\',\'' + t.id + '\')">编辑</button>' +
+          (t.isDefault ? '' : '<button class="btn-icon danger" onclick="deleteSettingsItem(\'incomeType\',\'' + t.id + '\')">删除</button>') +
+        '</div>' +
+      '</div>';
+    }).join('');
   }
 
-  // 显示上次备份时间
+  // 显示上次备份时间 - 使用 id="last-backup-time"
   var settings = loadData('jx3_settings');
   var backupSetting = settings.find(function(s) { return s.key === 'lastBackup'; });
   var backupEl = document.getElementById('last-backup-time');
   if (backupEl) {
-    backupEl.textContent = backupSetting ? formatDateTime(backupSetting.value) : '从未备份';
+    backupEl.textContent = backupSetting ? '上次备份：' + formatDateTime(backupSetting.value) : '从未备份';
   }
 }
 
 /**
- * 打开设置弹窗
- * @param {string} type - account/server/character/incomeType
+ * 打开设置弹窗（新数据模型：只有character和incomeType两种类型）
+ * @param {string} type - character/incomeType
  * @param {string} editId - 编辑时传入ID，新增为null
  */
 function openSettingsModal(type, editId) {
@@ -2046,188 +2096,150 @@ function openSettingsModal(type, editId) {
   settingsEditId = editId || null;
 
   var titleEl = document.getElementById('settings-modal-title');
-  var fieldsEl = document.getElementById('settings-modal-fields');
-  if (!fieldsEl) return;
-
-  var titleMap = {
-    account: '账号',
-    server: '区服',
-    character: '角色',
-    incomeType: '收益类型'
-  };
-  if (titleEl) titleEl.textContent = (editId ? '编辑' : '添加') + titleMap[type];
+  var bodyEl = document.getElementById('settings-modal-body');  // 使用 body 不是 fields
+  if (!bodyEl) return;
 
   var html = '';
 
-  if (type === 'account') {
-    var accounts = loadData('jx3_accounts');
-    var acct = editId ? accounts.find(function(a) { return a.id === editId; }) : null;
-    var name = acct ? acct.name : '';
-    html = '<div class="form-group"><label>账号名称</label>' +
-      '<input type="text" id="settings-name" class="form-input" value="' + escapeHtml(name) + '" placeholder="请输入账号名称"></div>';
-  } else if (type === 'server') {
-    var servers = loadData('jx3_servers');
-    var svrAccounts = loadData('jx3_accounts');
-    var svr = editId ? servers.find(function(s) { return s.id === editId; }) : null;
-    var svrName = svr ? svr.name : '';
-    var svrType = svr ? svr.stype : 'telecom';
-    var svrAcct = svr ? svr.accountId : '';
-    html = '<div class="form-group"><label>区服名称</label>' +
-      '<input type="text" id="settings-name" class="form-input" value="' + escapeHtml(svrName) + '" placeholder="请输入区服名称"></div>' +
-      '<div class="form-group"><label>区服类型</label>' +
-      '<select id="settings-stype" class="form-input">' +
-        '<option value="telecom"' + (svrType === 'telecom' ? ' selected' : '') + '>电信</option>' +
-        '<option value="dual"' + (svrType === 'dual' ? ' selected' : '') + '>双线</option>' +
-      '</select></div>' +
-      '<div class="form-group"><label>关联账号</label>' +
-      '<select id="settings-account-id" class="form-input"><option value="">无关联</option>';
-    svrAccounts.forEach(function(a) {
-      html += '<option value="' + a.id + '"' + (svrAcct === a.id ? ' selected' : '') + '>' + escapeHtml(a.name) + '</option>';
-    });
-    html += '</select></div>';
-  } else if (type === 'character') {
+  if (type === 'character') {
+    titleEl.textContent = editId ? '编辑角色' : '添加角色';
     var characters = loadData('jx3_characters');
-    var charServers = loadData('jx3_servers');
-    var charAccounts = loadData('jx3_accounts');
-    var char = editId ? characters.find(function(c) { return c.id === editId; }) : null;
-    var charName = char ? char.name : '';
-    var charSect = char ? char.sect : '';
-    var charSvr = char ? char.serverId : '';
-    var charAcct = char ? char.accountId : '';
-    var isMain = char ? char.isMain : false;
-    html = '<div class="form-group"><label>角色名称</label>' +
-      '<input type="text" id="settings-name" class="form-input" value="' + escapeHtml(charName) + '" placeholder="请输入角色名称"></div>' +
-      '<div class="form-group"><label>门派</label>' +
-      '<select id="settings-sect" class="form-input"><option value="">请选择门派</option>';
+    var c = editId ? characters.find(function(ch) { return ch.id === editId; }) : null;
+    var account = c ? c.account : '';
+    var server = c ? c.server : '';
+    var characterId = c ? c.characterId : '';
+    var sect = c ? c.sect : '';
+    var isMain = c ? c.isMain : false;
+
+    html = '<div class="form-group"><label class="form-label">账号名</label>' +
+      '<input type="text" id="settings-account" class="form-input" value="' + escapeHtml(account) + '" placeholder="如：gong518523"></div>' +
+
+      '<div class="form-group"><label class="form-label">区服</label>' +
+      '<select id="settings-server" class="form-select"><option value="">请选择区服</option>';
+    // 电信区服
+    html += '<optgroup label="电信">';
+    PRESET_SERVERS.telecom.forEach(function(s) {
+      html += '<option value="' + s + '"' + (server === s ? ' selected' : '') + '>' + s + '</option>';
+    });
+    html += '</optgroup><optgroup label="双线">';
+    PRESET_SERVERS.dual.forEach(function(s) {
+      html += '<option value="' + s + '"' + (server === s ? ' selected' : '') + '>' + s + '</option>';
+    });
+    html += '</optgroup><option value="custom"' + (server && !PRESET_SERVERS.telecom.includes(server) && !PRESET_SERVERS.dual.includes(server) ? ' selected' : '') + '>— 自定义 —</option>';
+    html += '</select></div>';
+
+    html += '<div class="form-group" id="settings-server-custom-wrap" style="display:none">' +
+      '<input type="text" id="settings-server-custom" class="form-input" placeholder="输入自定义区服名" value="' + (server && !PRESET_SERVERS.telecom.includes(server) && !PRESET_SERVERS.dual.includes(server) ? escapeHtml(server) : '') + '"></div>' +
+
+      '<div class="form-group"><label class="form-label">角色名</label>' +
+      '<input type="text" id="settings-character-id" class="form-input" value="' + escapeHtml(characterId) + '" placeholder="如：万花小师妹"></div>' +
+
+      '<div class="form-group"><label class="form-label">门派</label>' +
+      '<select id="settings-sect" class="form-select"><option value="">请选择门派</option>';
     PRESET_SECTS.forEach(function(s) {
-      html += '<option value="' + s + '"' + (charSect === s ? ' selected' : '') + '>' + s + '</option>';
+      html += '<option value="' + s + '"' + (sect === s ? ' selected' : '') + '>' + s + '</option>';
     });
     html += '</select></div>' +
-      '<div class="form-group"><label>所在区服</label>' +
-      '<select id="settings-server-id" class="form-input"><option value="">请选择区服</option>';
-    charServers.forEach(function(s) {
-      html += '<option value="' + s.id + '"' + (charSvr === s.id ? ' selected' : '') + '>' + escapeHtml(s.name) + '</option>';
-    });
-    html += '</select></div>' +
-      '<div class="form-group"><label>关联账号</label>' +
-      '<select id="settings-account-id" class="form-input"><option value="">无关联</option>';
-    charAccounts.forEach(function(a) {
-      html += '<option value="' + a.id + '"' + (charAcct === a.id ? ' selected' : '') + '>' + escapeHtml(a.name) + '</option>';
-    });
-    html += '</select></div>' +
-      '<div class="form-group"><label><input type="checkbox" id="settings-is-main"' + (isMain ? ' checked' : '') + '> 设为主角色</label></div>';
+
+      '<div class="form-group"><label class="form-label"><input type="checkbox" id="settings-is-main"' + (isMain ? ' checked' : '') + '> 设为主角色</label></div>';
+
   } else if (type === 'incomeType') {
+    titleEl.textContent = editId ? '编辑类型' : '添加类型';
     var incomeTypes = loadData('jx3_income_types');
-    var it = editId ? incomeTypes.find(function(t) { return t.id === editId; }) : null;
-    var itName = it ? it.name : '';
-    html = '<div class="form-group"><label>类型名称</label>' +
-      '<input type="text" id="settings-name" class="form-input" value="' + escapeHtml(itName) + '" placeholder="请输入类型名称"></div>';
+    var t = editId ? incomeTypes.find(function(it) { return it.id === editId; }) : null;
+    var name = t ? t.name : '';
+    html = '<div class="form-group"><label class="form-label">类型名称</label>' +
+      '<input type="text" id="settings-name" class="form-input" value="' + escapeHtml(name) + '" placeholder="请输入类型名称"></div>';
   }
 
-  fieldsEl.innerHTML = html;
+  bodyEl.innerHTML = html;
+
+  // 区服自定义切换
+  var serverSelect = document.getElementById('settings-server');
+  if (serverSelect) {
+    serverSelect.addEventListener('change', function() {
+      var customWrap = document.getElementById('settings-server-custom-wrap');
+      if (customWrap) {
+        customWrap.style.display = (this.value === 'custom') ? 'block' : 'none';
+      }
+    });
+  }
+
   openModal('settings-modal');
 }
 
 /**
- * 保存设置项
+ * 保存设置项（新数据模型：只有character和incomeType两种类型）
  */
 function saveSettingsItem() {
-  var type = settingsEditType;
-  var editId = settingsEditId;
-  var nameInput = document.getElementById('settings-name');
-  var name = nameInput ? nameInput.value.trim() : '';
+  if (settingsEditType === 'character') {
+    var account = document.getElementById('settings-account').value.trim();
+    var serverSelect = document.getElementById('settings-server').value;
+    var serverCustom = document.getElementById('settings-server-custom') ? document.getElementById('settings-server-custom').value.trim() : '';
+    var server = serverSelect === 'custom' ? serverCustom : serverSelect;
+    var characterId = document.getElementById('settings-character-id').value.trim();
+    var sect = document.getElementById('settings-sect').value;
+    var isMain = document.getElementById('settings-is-main').checked;
 
-  if (!name) {
-    showToast('请输入名称');
-    return;
-  }
-
-  if (type === 'account') {
-    var accounts = loadData('jx3_accounts');
-    if (editId) {
-      var a = accounts.find(function(ac) { return ac.id === editId; });
-      if (a) a.name = name;
-    } else {
-      accounts.push({ id: uid(), name: name });
-    }
-    saveData('jx3_accounts', accounts);
-  } else if (type === 'server') {
-    var servers = loadData('jx3_servers');
-    var stypeSel = document.getElementById('settings-stype');
-    var acctIdSel = document.getElementById('settings-account-id');
-    var stype = stypeSel ? stypeSel.value : 'telecom';
-    var acctId = acctIdSel ? acctIdSel.value : '';
-    if (editId) {
-      var s = servers.find(function(sv) { return sv.id === editId; });
-      if (s) { s.name = name; s.stype = stype; s.accountId = acctId; }
-    } else {
-      servers.push({ id: uid(), name: name, stype: stype, accountId: acctId });
-    }
-    saveData('jx3_servers', servers);
-  } else if (type === 'character') {
-    var characters = loadData('jx3_characters');
-    var sectSel = document.getElementById('settings-sect');
-    var svrIdSel = document.getElementById('settings-server-id');
-    var charAcctIdSel = document.getElementById('settings-account-id');
-    var isMainChk = document.getElementById('settings-is-main');
-    var sect = sectSel ? sectSel.value : '';
-    var svrId = svrIdSel ? svrIdSel.value : '';
-    var charAcctId = charAcctIdSel ? charAcctIdSel.value : '';
-    var isMain = isMainChk ? isMainChk.checked : false;
-
-    if (isMain) {
-      // 取消其他主角色
-      characters.forEach(function(c) { c.isMain = false; });
+    if (!account || !server || !characterId) {
+      showToast('账号名、区服、角色名不能为空');
+      return;
     }
 
-    if (editId) {
-      var c = characters.find(function(ch) { return ch.id === editId; });
-      if (c) {
-        c.name = name; c.sect = sect; c.serverId = svrId; c.accountId = charAcctId; c.isMain = isMain;
+    var list = loadData('jx3_characters');
+    if (settingsEditId) {
+      var item = list.find(function(c) { return c.id === settingsEditId; });
+      if (item) {
+        item.account = account;
+        item.server = server;
+        item.characterId = characterId;
+        item.sect = sect;
+        item.isMain = isMain;
       }
     } else {
-      characters.push({
-        id: uid(), name: name, sect: sect, serverId: svrId, accountId: charAcctId, isMain: isMain
+      list.push({ id: uid(), account: account, server: server, characterId: characterId, sect: sect, isMain: isMain });
+    }
+
+    // 如果设为主角色，取消其他主角色标记
+    if (isMain) {
+      list.forEach(function(c) {
+        if (c.id !== (settingsEditId || list[list.length-1].id)) c.isMain = false;
       });
     }
-    saveData('jx3_characters', characters);
-  } else if (type === 'incomeType') {
-    var incomeTypes = loadData('jx3_income_types');
-    if (editId) {
-      var t = incomeTypes.find(function(tp) { return tp.id === editId; });
-      if (t) t.name = name;
+
+    saveData('jx3_characters', list);
+  } else if (settingsEditType === 'incomeType') {
+    var name = document.getElementById('settings-name').value.trim();
+    if (!name) { showToast('名称不能为空'); return; }
+    var types = loadData('jx3_income_types');
+    if (settingsEditId) {
+      var item = types.find(function(t) { return t.id === settingsEditId; });
+      if (item) item.name = name;
     } else {
-      incomeTypes.push({ id: uid(), name: name, isDefault: false });
+      types.push({ id: uid(), name: name, isDefault: false });
     }
-    saveData('jx3_income_types', incomeTypes);
+    saveData('jx3_income_types', types);
   }
 
   closeModal('settings-modal');
-  renderSettings();
   showToast('保存成功');
+  renderSettings();
 }
 
 /**
- * 删除设置项
- * @param {string} type - account/server/character/incomeType
+ * 删除设置项（新数据模型：只有character和incomeType两种类型）
+ * @param {string} type - character/incomeType
  * @param {string} id
  */
 function deleteSettingsItem(type, id) {
-  var typeNames = {
-    account: '账号', server: '区服', character: '角色', incomeType: '收益类型'
-  };
-  showConfirm('确定删除这个' + typeNames[type] + '吗？相关数据将保留但失去关联。', function() {
-    var key = {
-      account: 'jx3_accounts',
-      server: 'jx3_servers',
-      character: 'jx3_characters',
-      incomeType: 'jx3_income_types'
-    }[type];
-    var data = loadData(key);
-    var filtered = data.filter(function(item) { return item.id !== id; });
-    saveData(key, filtered);
-    renderSettings();
+  var typeNames = { character: '角色', incomeType: '收益类型' };
+  showConfirm('确定删除此' + typeNames[type] + '？', function() {
+    var key = type === 'character' ? 'jx3_characters' : 'jx3_income_types';
+    var list = loadData(key);
+    list = list.filter(function(item) { return item.id !== id; });
+    saveData(key, list);
     showToast('已删除');
+    renderSettings();
   });
 }
 
@@ -2559,8 +2571,8 @@ function exportCSV() {
       r.date || '',
       formatDateTime(r.timestamp),
       getCharName(r.characterId),
-      getServerName(r.serverId),
-      getAccountName(r.accountId),
+      getCharServer(r.characterId),
+      getCharAccount(r.characterId),
       r.type === 'expense' ? '支出' : '收入',
       getTypeName(r.category),
       r.amount || 0,
@@ -2581,6 +2593,93 @@ function exportCSV() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('CSV已导出');
+}
+
+/**
+ * 导入CSV收益记录
+ * @param {Event} event - 文件选择事件
+ */
+function importCSV(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var text = e.target.result;
+      // 移除BOM
+      if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
+      var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
+      if (lines.length < 2) {
+        showToast('CSV文件为空或格式错误');
+        return;
+      }
+
+      // 解析表头
+      var headers = parseCSVLine(lines[0]);
+      var records = loadData('jx3_records');
+      var imported = 0;
+
+      for (var i = 1; i < lines.length; i++) {
+        var values = parseCSVLine(lines[i]);
+        if (values.length < 5) continue;
+
+        var record = {
+          id: uid(),
+          characterId: values[0] || '',
+          type: values[1] === '支出' ? 'expense' : 'income',
+          amount: parseFloat(values[2]) || 0,
+          note: values[3] || '',
+          date: values[4] || today(),
+          timestamp: Date.now() + i
+        };
+
+        // 尝试匹配来源类型
+        if (values[5]) {
+          var types = loadData('jx3_income_types');
+          var matchedType = types.find(function(t) { return t.name === values[5]; });
+          if (matchedType) record.category = matchedType.id;
+        }
+
+        records.push(record);
+        imported++;
+      }
+
+      saveData('jx3_records', records);
+      showToast('成功导入 ' + imported + ' 条记录');
+      if (currentTab === 'records') renderRecordList();
+      if (currentTab === 'home') renderHome();
+    } catch (err) {
+      showToast('CSV解析失败: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
+
+/**
+ * CSV行解析（处理引号和逗号）
+ * @param {string} line - CSV行文本
+ * @returns {Array} 解析后的字段数组
+ */
+function parseCSVLine(line) {
+  var result = [];
+  var current = '';
+  var inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
 }
 
 /**
@@ -2866,8 +2965,8 @@ function init() {
   var summaryDate = document.getElementById('summary-date');
   if (summaryDate) summaryDate.value = today();
 
-  // 绑定筛选器变化事件
-  var filterIds = ['filter-account', 'filter-server', 'filter-char', 'filter-date-start', 'filter-date-end'];
+  // 绑定筛选器变化事件（简化为角色筛选+日期范围）
+  var filterIds = ['record-filter-char', 'record-filter-date-from', 'record-filter-date-to'];
   filterIds.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) {
@@ -2919,6 +3018,8 @@ window.getServerName = getServerName;
 window.getAccountName = getAccountName;
 window.getTypeName = getTypeName;
 window.getCharSect = getCharSect;
+window.getCharServer = getCharServer;
+window.getCharAccount = getCharAccount;
 
 window.showToast = showToast;
 window.openModal = openModal;
@@ -2975,6 +3076,7 @@ window.globalSearch = globalSearch;
 window.exportData = exportData;
 window.importData = importData;
 window.exportCSV = exportCSV;
+window.importCSV = importCSV;
 window.confirmClearAll = confirmClearAll;
 
 window.init = init;

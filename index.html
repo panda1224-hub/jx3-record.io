@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>江湖账房 - 剑网三收益记录</title>
 
-  <!-- Google Fonts: 马善政(标题) + 思源宋体(正文) -->
+  <!-- Google Fonts: 马善政(标题书法) + 思源宋体(正文) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -15,135 +15,105 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="江湖账房">
-  <meta name="theme-color" content="#1a1612">
+  <meta name="theme-color" content="#B83A2B">
 
   <!-- 外部样式表 -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- ============ 应用外壳 ============ -->
+
+  <!-- ============================================================ -->
+  <!-- ============             顶部标题栏             ============ -->
+  <!-- ============================================================ -->
+  <header class="top-bar">
+    <div class="top-bar-title">江湖账房</div>
+    <div class="top-bar-date" id="top-date"></div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- ============             应用外壳               ============ -->
+  <!-- ============================================================ -->
   <div class="app-shell">
 
-    <!-- ====== 左侧边栏（墨黑，桌面固定，移动隐藏） ====== -->
+    <!-- ====== 左侧导航栏（墨黑底，竖排，桌面固定 / 移动隐藏） ====== -->
     <aside class="sidebar">
-      <!-- 品牌标识 -->
-      <div class="sidebar-logo">
-        <span class="logo-text">江湖账房</span>
-      </div>
-
-      <!-- 导航菜单 -->
       <nav class="sidebar-nav">
         <div class="nav-item active" data-page="home" onclick="switchPage('home')">
-          <span class="nav-icon">卷</span>
-          <span class="nav-label">总览</span>
+          <span class="nav-icon">卷</span><span class="nav-label">总览</span>
         </div>
         <div class="nav-item" data-page="records" onclick="switchPage('records')">
-          <span class="nav-icon">金</span>
-          <span class="nav-label">收支</span>
+          <span class="nav-icon">金</span><span class="nav-label">收支</span>
         </div>
         <div class="nav-item" data-page="encounters" onclick="switchPage('encounters')">
-          <span class="nav-icon">遇</span>
-          <span class="nav-label">奇遇</span>
+          <span class="nav-icon">遇</span><span class="nav-label">奇遇</span>
         </div>
         <div class="nav-item" data-page="tasks" onclick="switchPage('tasks')">
-          <span class="nav-icon">勤</span>
-          <span class="nav-label">任务</span>
+          <span class="nav-icon">勤</span><span class="nav-label">任务</span>
         </div>
         <div class="nav-item" data-page="summary" onclick="switchPage('summary')">
-          <span class="nav-icon">总</span>
-          <span class="nav-label">汇总</span>
+          <span class="nav-icon">总</span><span class="nav-label">汇总</span>
         </div>
         <div class="nav-item" data-page="achievements" onclick="switchPage('achievements')">
-          <span class="nav-icon">勋</span>
-          <span class="nav-label">成就</span>
+          <span class="nav-icon">勋</span><span class="nav-label">成就</span>
         </div>
         <div class="nav-item" data-page="blacklist" onclick="switchPage('blacklist')">
-          <span class="nav-icon">避</span>
-          <span class="nav-label">避雷</span>
+          <span class="nav-icon">避</span><span class="nav-label">避雷</span>
         </div>
         <div class="nav-item" data-page="community" onclick="switchPage('community')">
-          <span class="nav-icon">聚</span>
-          <span class="nav-label">社区</span>
+          <span class="nav-icon">聚</span><span class="nav-label">社区</span>
         </div>
         <div class="nav-item" data-page="price" onclick="switchPage('price')">
-          <span class="nav-icon">价</span>
-          <span class="nav-label">物价</span>
+          <span class="nav-icon">价</span><span class="nav-label">物价</span>
         </div>
         <div class="nav-item" data-page="settings" onclick="switchPage('settings')">
-          <span class="nav-icon">设</span>
-          <span class="nav-label">设置</span>
+          <span class="nav-icon">设</span><span class="nav-label">设置</span>
         </div>
       </nav>
-
-      <!-- 侧边栏底部：语音录入 + 全局搜索 -->
       <div class="sidebar-footer">
-        <button id="voice-btn" class="voice-btn" title="语音录入">
-          <span class="voice-icon">话</span>
-          <span class="voice-text">语音录入</span>
-        </button>
+        <button id="voice-btn" onclick="toggleVoice()">话</button>
         <div class="search-box">
-          <input type="text" id="global-search" placeholder="搜索记录...">
+          <input type="text" id="global-search" placeholder="搜索记录..." oninput="handleSearch(this.value)">
         </div>
       </div>
     </aside>
 
-    <!-- ====== 主内容区 ====== -->
+    <!-- ====== 中央主内容区（宣纸底色） ====== -->
     <main class="main-content">
 
       <!-- ========== 首页总览 ========== -->
       <div class="page active" id="page-home">
-        <!-- 古风诗句横幅 -->
         <div class="home-poem-bar"><span id="home-poem"></span></div>
-        <!-- 今日日期 -->
-        <div class="home-date-bar"><span id="home-date"></span></div>
-        <!-- 收益统计三宫格 -->
         <div class="home-stats-grid">
-          <div class="scroll-card">
-            <div class="stat-label">今日收入</div>
-            <div class="stat-number gold" id="home-income-total">0</div>
-          </div>
-          <div class="scroll-card">
-            <div class="stat-label">今日支出</div>
-            <div class="stat-number red" id="home-expense-total">0</div>
-          </div>
-          <div class="scroll-card">
-            <div class="stat-label">今日净收益</div>
-            <div class="stat-number" id="home-net-income">0</div>
-          </div>
+          <div class="scroll-card"><div class="stat-label">今日收入</div><div class="stat-number gold" id="home-income-total">0</div></div>
+          <div class="scroll-card"><div class="stat-label">今日支出</div><div class="stat-number red" id="home-expense-total">0</div></div>
+          <div class="scroll-card"><div class="stat-label">今日净收益</div><div class="stat-number" id="home-net-income">0</div></div>
         </div>
-        <!-- 本周目标进度 -->
         <div class="scroll-card home-goal-section">
           <div class="section-title">本周目标</div>
           <div class="progress-bar"><div class="progress-fill" id="home-goal-fill" style="width:0%"></div></div>
           <div class="progress-text" id="home-goal-text">0 / 0 金</div>
         </div>
-        <!-- 最近记录列表 -->
         <div class="scroll-card">
           <div class="section-title">最近记录</div>
           <div id="home-recent-list" class="recent-list"></div>
         </div>
-        <!-- 快捷操作 -->
         <div class="home-quick-actions">
           <button class="btn btn-stamp" onclick="openRecordModal()">速记收益</button>
           <button class="btn btn-stamp" onclick="switchPage('tasks')">打卡日常</button>
         </div>
       </div>
 
-      <!-- ========== 收益记录页 ========== -->
+      <!-- ========== 收支流水页 ========== -->
       <div class="page" id="page-records">
         <div class="page-header">
           <div class="section-title">收支流水</div>
           <button class="btn btn-stamp" onclick="openRecordModal()">+ 记一笔</button>
         </div>
-        <!-- 筛选栏 -->
         <div class="filter-bar">
-          <select id="record-filter-account" class="form-select" onchange="renderRecordList()"><option value="">全部账号</option></select>
-          <select id="record-filter-server" class="form-select" onchange="renderRecordList()"><option value="">全部区服</option></select>
           <select id="record-filter-char" class="form-select" onchange="renderRecordList()"><option value="">全部角色</option></select>
           <input type="date" id="record-filter-date-from" class="form-input" onchange="renderRecordList()">
           <input type="date" id="record-filter-date-to" class="form-input" onchange="renderRecordList()">
         </div>
-        <!-- 记录列表容器 -->
         <div id="record-list" class="list-container"></div>
       </div>
 
@@ -153,9 +123,7 @@
           <div class="section-title">奇遇台账</div>
           <button class="btn btn-stamp" onclick="openEncounterModal()">+ 记奇遇</button>
         </div>
-        <!-- 奇遇统计栏 -->
         <div class="encounter-stats-bar" id="encounter-stats"></div>
-        <!-- 筛选栏 -->
         <div class="filter-bar">
           <select id="encounter-filter-char" class="form-select" onchange="renderEncounterList()"><option value="">全部角色</option></select>
           <select id="encounter-filter-rarity" class="form-select" onchange="renderEncounterList()">
@@ -164,7 +132,6 @@
             <option value="normal">普通奇遇</option>
           </select>
         </div>
-        <!-- 奇遇列表容器 -->
         <div id="encounter-list" class="list-container"></div>
       </div>
 
@@ -174,17 +141,14 @@
           <div class="section-title">任务打卡</div>
           <button class="btn btn-stamp" onclick="openTaskModal()">+ 新增任务</button>
         </div>
-        <!-- 任务类型切换 -->
         <div class="task-tabs">
           <button class="task-tab active" id="task-tab-daily" onclick="switchTaskTab('daily')">每日必做</button>
           <button class="task-tab" id="task-tab-weekly" onclick="switchTaskTab('weekly')">每周必做</button>
         </div>
-        <!-- 完成率进度 -->
         <div class="task-progress-section">
           <span id="task-progress-text">完成率 0%</span>
           <div class="progress-bar"><div class="progress-fill" id="task-progress-fill" style="width:0%"></div></div>
         </div>
-        <!-- 任务列表容器 -->
         <div id="task-list" class="task-list-container"></div>
       </div>
 
@@ -194,7 +158,6 @@
           <div class="section-title">数据汇总</div>
           <button class="btn btn-stamp" onclick="generateSummaryImage()">生成图片</button>
         </div>
-        <!-- 筛选栏 -->
         <div class="filter-bar">
           <select id="summary-period" class="form-select" onchange="renderSummary()">
             <option value="day">按日</option>
@@ -203,9 +166,7 @@
           <input type="date" id="summary-date" class="form-input" onchange="renderSummary()">
           <select id="summary-char" class="form-select" onchange="renderSummary()"><option value="">全部角色</option></select>
         </div>
-        <!-- 汇总内容容器 -->
         <div id="summary-content"></div>
-        <!-- 收益趋势图表 -->
         <div class="scroll-card">
           <div class="section-title">收益趋势</div>
           <canvas id="summary-chart-canvas" width="800" height="300"></canvas>
@@ -216,11 +177,9 @@
       <div class="page" id="page-achievements">
         <div class="page-header">
           <div class="section-title">成就徽章</div>
-          <button class="btn btn-stamp" id="achievement-share-btn" onclick="generateAchievementPoster()">生成海报</button>
+          <button class="btn btn-stamp" onclick="generateAchievementPoster()">生成海报</button>
         </div>
-        <!-- 成就列表网格 -->
         <div id="achievement-list" class="achievement-grid"></div>
-        <!-- 海报画布（隐藏，用于导出） -->
         <canvas id="achievement-poster-canvas" width="800" height="1200" style="display:none"></canvas>
       </div>
 
@@ -230,7 +189,6 @@
           <div class="section-title">避雷名单</div>
           <button class="btn btn-stamp" onclick="openBlacklistModal()">+ 添加记录</button>
         </div>
-        <!-- 筛选栏 -->
         <div class="filter-bar">
           <select id="blacklist-filter-type" class="form-select" onchange="renderBlacklist()">
             <option value="">全部类型</option>
@@ -240,7 +198,6 @@
           </select>
           <input type="text" id="blacklist-filter-keyword" class="form-input" placeholder="搜索..." oninput="renderBlacklist()">
         </div>
-        <!-- 避雷列表容器 -->
         <div id="blacklist-list" class="list-container"></div>
       </div>
 
@@ -264,30 +221,20 @@
 
       <!-- ========== 设置页 ========== -->
       <div class="page" id="page-settings">
-        <!-- 账号管理 -->
-        <div class="settings-section">
-          <div class="settings-section-title">账号管理</div>
-          <div id="settings-accounts" class="settings-list"></div>
-          <button class="btn btn-outline" onclick="openSettingsModal('account')">+ 新增账号</button>
-        </div>
-        <!-- 区服管理 -->
-        <div class="settings-section">
-          <div class="settings-section-title">区服管理</div>
-          <div id="settings-servers" class="settings-list"></div>
-          <button class="btn btn-outline" onclick="openSettingsModal('server')">+ 新增区服</button>
-        </div>
-        <!-- 角色管理 -->
+        <!-- 角色管理（合并账号+区服+角色为一步添加） -->
         <div class="settings-section">
           <div class="settings-section-title">角色管理</div>
-          <div id="settings-characters" class="settings-list"></div>
-          <button class="btn btn-outline" onclick="openSettingsModal('character')">+ 新增角色</button>
+          <div id="settings-character-list" class="settings-list"></div>
+          <button class="btn btn-outline" onclick="openSettingsModal('character')">+ 添加角色</button>
         </div>
+
         <!-- 收益来源类型 -->
         <div class="settings-section">
           <div class="settings-section-title">收益来源类型</div>
-          <div id="settings-types" class="settings-list"></div>
-          <button class="btn btn-outline" onclick="openSettingsModal('incomeType')">+ 新增类型</button>
+          <div id="settings-incometype-list" class="settings-list"></div>
+          <button class="btn btn-outline" onclick="openSettingsModal('incomeType')">+ 添加类型</button>
         </div>
+
         <!-- 数据管理 -->
         <div class="settings-section">
           <div class="settings-section-title">数据管理</div>
@@ -296,23 +243,23 @@
             <input type="file" id="import-file" accept=".json" class="hidden-input" onchange="importData(event)">
             <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">导入JSON</button>
             <button class="btn btn-secondary" onclick="exportCSV()">导出CSV</button>
+            <input type="file" id="import-csv-file" accept=".csv" class="hidden-input" onchange="importCSV(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('import-csv-file').click()">导入CSV</button>
             <button class="btn btn-danger" onclick="confirmClearAll()">清空全部</button>
           </div>
-          <div class="settings-backup-info" id="last-backup-info"></div>
+          <div class="settings-backup-info" id="last-backup-time"></div>
         </div>
       </div>
 
     </main>
 
-    <!-- ====== 右侧辅助栏（桌面180px，移动隐藏） ====== -->
+    <!-- ====== 右侧装饰栏（竖排书法 + 快捷按钮） ====== -->
     <aside class="side-panel">
-      <!-- 竖排标题 -->
       <div class="side-panel-title">江湖速记</div>
-      <!-- 快捷工具区 -->
       <div class="side-panel-content">
-        <button class="side-quick" data-action="record" onclick="openRecordModal()">速记收益</button>
-        <button class="side-quick" data-action="task" onclick="switchPage('tasks')">打卡日常</button>
-        <button class="side-quick" data-action="encounter" onclick="openEncounterModal()">记奇遇</button>
+        <button class="side-quick" onclick="openRecordModal()">速记收益</button>
+        <button class="side-quick" onclick="switchPage('tasks')">打卡日常</button>
+        <button class="side-quick" onclick="openEncounterModal()">记奇遇</button>
       </div>
     </aside>
 
@@ -320,7 +267,20 @@
 
 
   <!-- ============================================================ -->
-  <!-- ============             弹窗区域             ============ -->
+  <!-- ============             底部汇总栏             ============ -->
+  <!-- ============================================================ -->
+  <footer class="bottom-bar">
+    <div class="bottom-bar-stat">
+      <span class="bottom-bar-label">今日净收益</span>
+      <span class="bottom-bar-amount" id="bottom-net-income">0</span>
+      <span class="bottom-bar-unit">金</span>
+    </div>
+    <button class="bottom-bar-btn" onclick="openRecordModal()">速记一笔</button>
+  </footer>
+
+
+  <!-- ============================================================ -->
+  <!-- ============             弹窗区域               ============ -->
   <!-- ============================================================ -->
 
   <!-- 录入弹窗 -->
@@ -328,7 +288,6 @@
     <div class="modal">
       <div class="modal-title">记一笔</div>
       <div class="modal-body">
-        <!-- 收支类型切换 -->
         <div class="form-group">
           <label class="form-label">收支类型</label>
           <div class="btn-toggle-group">
@@ -336,12 +295,10 @@
             <button class="btn-toggle" id="record-type-expense" onclick="setRecordType('expense')">支出</button>
           </div>
         </div>
-        <!-- 角色选择 -->
         <div class="form-group">
           <label class="form-label">角色</label>
           <select id="record-char" class="form-select"></select>
         </div>
-        <!-- 快捷选择面板 -->
         <div class="form-group">
           <label class="form-label">快捷选择</label>
           <div class="quick-panel" id="record-category-panel">
@@ -356,12 +313,10 @@
             <button class="quick-btn" data-amount="0" data-name="其他">其他 自定义</button>
           </div>
         </div>
-        <!-- 来源类型 -->
         <div class="form-group">
           <label class="form-label">来源类型</label>
           <select id="record-income-type" class="form-select"></select>
         </div>
-        <!-- 金额输入 -->
         <div class="form-group">
           <label class="form-label">金额</label>
           <div class="amount-row">
@@ -374,17 +329,14 @@
             </div>
           </div>
         </div>
-        <!-- 物品/掉落描述（仅详情显示） -->
         <div class="form-group detail-only">
           <label class="form-label">物品/掉落描述</label>
           <input type="text" id="record-items" class="form-input" placeholder="如：玄晶、特殊装备等">
         </div>
-        <!-- 备注 -->
         <div class="form-group">
           <label class="form-label">备注</label>
           <textarea id="record-note" class="form-textarea" rows="2" placeholder="备注信息"></textarea>
         </div>
-        <!-- 历史记录快速填入 -->
         <div class="form-group">
           <label class="form-label">历史记录</label>
           <select id="record-history" class="form-select" onchange="loadFromHistory(this.value)">
@@ -404,7 +356,6 @@
     <div class="modal">
       <div class="modal-title">记录奇遇</div>
       <div class="modal-body">
-        <!-- 奇遇名称选择 -->
         <div class="form-group">
           <label class="form-label">奇遇名称</label>
           <select id="encounter-select" class="form-select">
@@ -413,21 +364,17 @@
             <option value="custom">— 自定义输入 —</option>
           </select>
         </div>
-        <!-- 自定义名称输入（默认隐藏） -->
         <div class="form-group" id="encounter-custom-wrap" style="display:none">
           <input type="text" id="encounter-custom-name" class="form-input" placeholder="输入奇遇名称">
         </div>
-        <!-- 角色选择 -->
         <div class="form-group">
           <label class="form-label">角色</label>
           <select id="encounter-char" class="form-select"></select>
         </div>
-        <!-- 触发日期 -->
         <div class="form-group">
           <label class="form-label">触发日期</label>
           <input type="date" id="encounter-date" class="form-input">
         </div>
-        <!-- 备注 -->
         <div class="form-group">
           <label class="form-label">备注</label>
           <textarea id="encounter-note" class="form-textarea" rows="2"></textarea>
@@ -445,17 +392,14 @@
     <div class="modal">
       <div class="modal-title">新增任务</div>
       <div class="modal-body">
-        <!-- 任务名称 -->
         <div class="form-group">
           <label class="form-label">任务名称</label>
           <input type="text" id="task-name" class="form-input" placeholder="如：大战！英雄秘境">
         </div>
-        <!-- 角色选择 -->
         <div class="form-group">
           <label class="form-label">角色</label>
           <select id="task-char" class="form-select"></select>
         </div>
-        <!-- 任务类型切换 -->
         <div class="form-group">
           <label class="form-label">任务类型</label>
           <div class="btn-toggle-group">
@@ -463,7 +407,6 @@
             <button class="btn-toggle" id="task-type-weekly-btn" onclick="setTaskType('weekly')">每周</button>
           </div>
         </div>
-        <!-- 模板快捷添加 -->
         <div class="form-group">
           <label class="form-label">从模板添加</label>
           <div class="quick-panel">
@@ -479,7 +422,6 @@
             <button class="quick-btn" onclick="addTaskFromTemplate('帮会大跑商')">帮会大跑商</button>
           </div>
         </div>
-        <!-- 批量操作 -->
         <div class="form-group">
           <label class="form-label">批量操作</label>
           <button class="btn btn-outline" onclick="batchCheckAll()">一键给所有角色打卡</button>
@@ -497,7 +439,6 @@
     <div class="modal">
       <div class="modal-title">添加避雷记录</div>
       <div class="modal-body">
-        <!-- 类型 -->
         <div class="form-group">
           <label class="form-label">类型</label>
           <select id="blacklist-type" class="form-select">
@@ -506,17 +447,14 @@
             <option value="uid">UID</option>
           </select>
         </div>
-        <!-- 名称/编号 -->
         <div class="form-group">
           <label class="form-label">名称/编号</label>
           <input type="text" id="blacklist-value" class="form-input" placeholder="输入团牌、ID或UID">
         </div>
-        <!-- 原因 -->
         <div class="form-group">
           <label class="form-label">原因</label>
           <input type="text" id="blacklist-reason" class="form-input" placeholder="如：黑装备、挂机等">
         </div>
-        <!-- 详细备注 -->
         <div class="form-group">
           <label class="form-label">详细备注</label>
           <textarea id="blacklist-note" class="form-textarea" rows="3"></textarea>
@@ -529,7 +467,7 @@
     </div>
   </div>
 
-  <!-- 设置弹窗 -->
+  <!-- 设置弹窗（简化） -->
   <div class="modal-overlay" id="settings-modal">
     <div class="modal">
       <div class="modal-title" id="settings-modal-title">新增</div>
@@ -556,33 +494,21 @@
   <!-- Toast 提示容器 -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- ============ 移动端底部导航（桌面隐藏） ============ -->
+
+  <!-- ============================================================ -->
+  <!-- ============         移动端底部导航             ============ -->
+  <!-- ============================================================ -->
   <nav class="mobile-nav">
-    <div class="mobile-nav-item active" data-page="home" onclick="switchPage('home')">
-      <span class="mobile-nav-icon">卷</span>
-      <span class="mobile-nav-label">总览</span>
-    </div>
-    <div class="mobile-nav-item" data-page="records" onclick="switchPage('records')">
-      <span class="mobile-nav-icon">金</span>
-      <span class="mobile-nav-label">收支</span>
-    </div>
-    <div class="mobile-nav-item" data-page="tasks" onclick="switchPage('tasks')">
-      <span class="mobile-nav-icon">勤</span>
-      <span class="mobile-nav-label">任务</span>
-    </div>
-    <div class="mobile-nav-item" data-page="summary" onclick="switchPage('summary')">
-      <span class="mobile-nav-icon">总</span>
-      <span class="mobile-nav-label">汇总</span>
-    </div>
-    <div class="mobile-nav-item" data-page="settings" onclick="switchPage('settings')">
-      <span class="mobile-nav-icon">设</span>
-      <span class="mobile-nav-label">更多</span>
-    </div>
+    <div class="mobile-nav-item active" data-page="home" onclick="switchPage('home')"><span class="mobile-nav-icon">卷</span><span class="mobile-nav-label">总览</span></div>
+    <div class="mobile-nav-item" data-page="records" onclick="switchPage('records')"><span class="mobile-nav-icon">金</span><span class="mobile-nav-label">收支</span></div>
+    <div class="mobile-nav-item" data-page="tasks" onclick="switchPage('tasks')"><span class="mobile-nav-icon">勤</span><span class="mobile-nav-label">任务</span></div>
+    <div class="mobile-nav-item" data-page="summary" onclick="switchPage('summary')"><span class="mobile-nav-icon">总</span><span class="mobile-nav-label">汇总</span></div>
+    <div class="mobile-nav-item" data-page="settings" onclick="switchPage('settings')"><span class="mobile-nav-icon">设</span><span class="mobile-nav-label">更多</span></div>
   </nav>
 
 
   <!-- ============================================================ -->
-  <!-- ============             脚本引用             ============ -->
+  <!-- ============             脚本引用               ============ -->
   <!-- ============================================================ -->
 
   <!-- SortableJS 拖拽排序库 -->
@@ -596,11 +522,11 @@
 
   <!-- Service Worker 注册（PWA 离线支持） -->
   <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(e => console.log('SW registration failed'));
-    });
-  }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>
