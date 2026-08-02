@@ -1,4 +1,4 @@
-/* ========================================================================
+﻿/* ========================================================================
  * 剑网三收益记录工具 - 核心逻辑 app.js
  * 版本：1.0.0
  * 说明：全局函数均挂载到 window，供 HTML 内联 onclick 调用
@@ -293,19 +293,13 @@ function getCharSect(id) {
  * @param {string} msg - 提示消息
  */
 function showToast(msg) {
-  var toast = document.getElementById('toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'toast';
-    toast.className = 'toast';
-    document.body.appendChild(toast);
-  }
+  var container = document.getElementById('toast-container');
+  if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.className = 'toast-container'; document.body.appendChild(container); }
+  var toast = document.createElement('div');
+  toast.className = 'toast';
   toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(function() {
-    toast.classList.remove('show');
-  }, 3000);
+  container.appendChild(toast);
+  setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 3000);
 }
 
 /**
@@ -337,7 +331,7 @@ function closeModal(id) {
  */
 function showConfirm(msg, callback) {
   confirmCallback = callback;
-  var msgEl = document.getElementById('confirm-msg');
+  var msgEl = document.getElementById('confirm-message');
   if (msgEl) msgEl.textContent = msg;
   openModal('confirm-modal');
 }
@@ -402,6 +396,7 @@ function switchPage(page) {
     case 'summary': renderSummary(); break;
     case 'settings': renderSettings(); break;
     case 'blacklist': renderBlacklist(); break;
+    case 'achievements': if (typeof window.renderAchievements === 'function') window.renderAchievements(); break;
   }
 
   // 移动端关闭侧边栏
@@ -2524,7 +2519,7 @@ function importData(event) {
       renderHome();
       renderSettings();
     };
-    var msgEl = document.getElementById('confirm-msg');
+    var msgEl = document.getElementById('confirm-message');
     if (msgEl) msgEl.textContent = '选择"确定"覆盖现有数据，选择"取消"则合并数据。确定要覆盖吗？';
     openModal('confirm-modal');
 
